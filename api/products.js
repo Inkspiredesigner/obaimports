@@ -2,11 +2,10 @@ export default async function handler(req, res) {
   const token = process.env.AIRTABLE_TOKEN;
   const baseId = process.env.AIRTABLE_BASE_ID;
   
-  // Captura o offset enviado pelo front-end
   const { offset } = req.query;
   
-  // Monta a URL do Airtable repassando o offset se ele existir
-  let airtableUrl = `https://api.airtable.com/v0/${baseId}/Perfumes`;
+  // Apontando para a tabela "Produtos" (conforme imagem do seu Airtable)
+  let airtableUrl = `https://api.airtable.com/v0/${baseId}/Produtos`;
   if (offset) {
     airtableUrl += `?offset=${encodeURIComponent(offset)}`;
   }
