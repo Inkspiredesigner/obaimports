@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oba imports - Catálogo de Atacado</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Font Awesome para Ícones -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+  <!-- CARROSSEL / BANNER DESTAQUE -->
+  <section class="hero-slider-container">
+    <div class="slider-track" id="sliderTrack">
+      <div class="slide">
+        <img src="banner-1.png" alt="Tabela de Preços Atacado" class="banner-img">
+      </div>
+      <div class="slide">
+        <img src="banner-2.png" alt="Coleção Perfumes Destaque" class="banner-img">
+      </div>
+      <div class="slide">
+        <img src="banner-3.png" alt="Lançamentos Aliba Perfumes" class="banner-img">
+      </div>
+    </div>
+
+    <div class="slider-dots" id="sliderDots">
+      <span class="dot active" onclick="goToSlide(0)"></span>
+      <span class="dot" onclick="goToSlide(1)"></span>
+      <span class="dot" onclick="goToSlide(2)"></span>
+    </div>
+  </section>
+
+  <!-- BARRA DE PESQUISA + BOTÃO HAMBÚRGUER -->
+  <div class="search-container">
+    <div class="category-tooltip">
+      Confira aqui as categorias disponíveis
+    </div>
+    <button type="button" class="hamburger-btn" onclick="toggleCategoryDrawer()" aria-label="Abrir Categorias">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+    <div class="search-box">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input type="text" id="search-input" placeholder="Pesquisar perfume ou fragrância..." oninput="handleSearch()">
+    </div>
+  </div>
+
+  <!-- GAVETA LATERAL DE CATEGORIAS (MENU HAMBÚRGUER) -->
+  <div id="category-overlay" class="category-overlay" onclick="toggleCategoryDrawer()"></div>
+  <aside id="category-drawer" class="category-drawer">
+    <div class="drawer-header">
+      <h3>Categorias</h3>
+      <button type="button" class="close-modal-btn" onclick="toggleCategoryDrawer()">&times;</button>
+    </div>
+    <div class="drawer-categories">
+      <button type="button" class="drawer-cat-btn active" onclick="selectDrawerCategory('todos', this)">Todos os Produtos</button>
+      <button type="button" class="drawer-cat-btn" onclick="selectDrawerCategory('50ml', this)">Perfumes 50ml</button>
+      <button type="button" class="drawer-cat-btn" onclick="selectDrawerCategory('100ml', this)">Perfumes 100ml</button>
+      <button type="button" class="drawer-cat-btn" onclick="selectDrawerCategory('bodysplash', this)">Body Splash</button>
+      <button type="button" class="drawer-cat-btn" onclick="selectDrawerCategory('miniaturas', this)">Miniaturas 25ml</button>
+      <button type="button" class="drawer-cat-btn" onclick="selectDrawerCategory('cremes', this)">Cremes VS</button>
+      <button type="button" class="drawer-cat-btn" onclick="selectDrawerCategory('Wepink', this)">We Pink</button>
+      <button type="button" class="drawer-cat-btn" onclick="selectDrawerCategory('150ml', this)">Bodysplash Infantil 150ml</button>
+    </div>
+  </aside>
+
+  <!-- VITRINE DE PRODUTOS -->
+  <main class="container">
+    <div id="products-grid" class="products-grid">
+      <!-- Renderizado via JS -->
+    </div>
+  </main>
+
+  <!-- BOTÃO FLUTUANTE DO WHATSAPP -->
+  <a href="https://wa.me/558896880584?text=Olá!%20Tenho%20uma%20dúvida." target="_blank" class="floating-help-btn" title="Dúvidas">
+    <i class="fa-brands fa-whatsapp"></i> <span>Dúvidas?</span>
+  </a>
+
+  <!-- BARRA FIXA DO CARRINHO -->
+  <div id="cart-bar" class="cart-bar" onclick="toggleCart()">
+    <div class="cart-info">
+      <i class="fa-solid fa-cart-shopping"></i> <span id="cart-count">0</span> itens | Total: <strong id="cart-total">R$ 0,00</strong>
+    </div>
+    <button type="button" class="view-cart-btn">Ver Carrinho <i class="fa-solid fa-chevron-right"></i></button>
+  </div>
+
+  <!-- GAVETA DO CARRINHO -->
+  <aside id="cart-modal" class="cart-modal">
+    <div class="cart-content">
+      <div class="cart-header">
+        <h2>Seu Pedido</h2>
+        <div class="cart-header-actions">
+          <button type="button" class="clear-cart-btn" onclick="clearCart()"><i class="fa-solid fa-trash-can"></i> Limpar</button>
+          <button type="button" class="close-btn" onclick="toggleCart()">&times;</button>
+        </div>
+      </div>
+      
+      <div id="cart-items" class="cart-items"></div>
+
+      <div class="checkout-form">
+        <h3>Dados do Pedido</h3>
+        <p id="checkout-error" class="checkout-error hidden" style="color: #ef4444; font-weight: bold; margin-bottom: 10px;"></p>
+        <div class="form-group">
+          <label for="client-name">Seu Nome *</label>
+          <input type="text" id="client-name" placeholder="Ex: João Silva">
+        </div>
+        <div class="form-group">
+          <label for="client-cpf">CPF</label>
+          <input type="text" id="client-cpf" placeholder="000.000.000-00" maxlength="14">
+        </div>
+        <div class="form-group">
+          <label for="client-city">Cidade / UF *</label>
+          <input type="text" id="client-city" placeholder="Ex: São Paulo - SP">
+        </div>
+        <div class="form-group">
+          <label for="client-address">Endereço Completo *</label>
+          <input type="text" id="client-address" placeholder="Rua, Nº, Bairro">
+        </div>
+        <div class="form-group">
+          <label for="client-cep">CEP</label>
+          <input type="text" id="client-cep" placeholder="00000-000">
+        </div>
+        <div class="form-group">
+          <label for="payment-method">Forma de Pagamento</label>
+          <select id="payment-method">
+            <option value="Pix">Pix (Aprovação Imediata)</option>
+            <option value="Cartão de Crédito">Cartão de Crédito</option>
+            <option value="Boleto Bancário">Boleto Bancário</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="shipping-method">Forma de Envio</label>
+          <select id="shipping-method">
+            <option value="Correios (PAC / SEDEX)">Envio via Correios</option>
+            <option value="Entrega Local / Motoboy">Entrega Local / Motoboy</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="cart-footer">
+        <div id="cart-savings" class="savings-box hidden"></div>
+        <div class="total-row">
+          <span>Subtotal:</span>
+          <strong id="modal-subtotal">R$ 0,00</strong>
+        </div>
+        <div class="total-row final">
+          <span>Total dos Produtos:</span>
+          <strong id="modal-total">R$ 0,00</strong>
+        </div>
+        <button type="button" class="whatsapp-btn" onclick="sendWhatsApp()">
+          <i class="fa-brands fa-whatsapp"></i> Enviar Pedido no WhatsApp
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MODAL DE DETALHES DO PRODUTO (FIXED & CENTRALIZADO) -->
+<div id="product-modal" class="modal-overlay hidden">
+  <div class="modal-content">
+    <button type="button" class="close-modal-btn" onclick="closeProductModal()">&times;</button>
+    <div id="product-detail-body"></div>
+  </div>
+</div>
+
+  <script src="script.js"></script>
+</body>
+</html>
