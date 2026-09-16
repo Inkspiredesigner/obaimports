@@ -217,12 +217,10 @@ function getItemUnitPrice(item, cartState = cart, totals = null) {
   }
 
   if (item.category === '50ml') {
-    if (catQty >= 500) return 13.50;
-    if (catQty >= 100) return 14.00;
     if (catQty >= 70)  return 15.00;
     if (catQty >= 50)  return 15.50;
     if (catQty >= 30)  return 16.00;
-    if (catQty >= 20)  return 16.50;
+    if (catQty >= 20)  return 17.00;
     if (catQty >= 10 || totalGeral >= 10) return 17.50;
     if (catQty >= 6)   return 22.00;
     return item.retailPrice;
