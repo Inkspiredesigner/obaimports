@@ -1,7 +1,20 @@
 // ==========================================
-// 1. CONFIGURAÇÃO & INTEGRAÇÃO COM AIRTABLE
+// 1. UTILITÁRIOS & FORMATAÇÃO
 // ==========================================
-let productsData = [];
+function formatBRL(value) {
+  const num = Number(value) || 0;
+  return `R$ ${num.toFixed(2).replace('.', ',')}`;
+}
+
+function sanitizeInput(str) {
+  if (!str) return "";
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").trim();
+}
+
+function escapeHTML(str) {
+  if (str === null || str === undefined) return "";
+  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
 
 function parsePrice(val) {
   if (typeof val === 'number') return isNaN(val) ? 0 : val;
@@ -21,6 +34,11 @@ function extractPrice(f) {
   }
   return 0;
 }
+
+// ==========================================
+// 2. CONFIGURAÇÃO & INTEGRAÇÃO COM AIRTABLE
+// ==========================================
+let productsData = [];
 
 async function fetchAllAirtableProducts(offset = '') {
   let url = `/api/products`;
@@ -62,11 +80,13 @@ function mapAirtableRecordToProduct(record) {
   if (catLower.includes('wepink')) {
     categoriaTratada = 'Wepink';
   } else if (catLower.includes('150ml') || catLower.includes('infantil')) { 
-  categoriaTratada = '150ml'; // <- Trata o 150ml PRIMEIRO
+    categoriaTratada = '150ml';
   } else if (catLower.includes('50ml')) {
     categoriaTratada = '50ml';
   } else if (catLower.includes('100ml')) {
     categoriaTratada = '100ml';
+  } else if (catLower.includes('bodybrand') || catLower.includes('brand')) {
+    categoriaTratada = 'bodybrand';
   } else if (catLower.includes('body') || catLower.includes('splash')) {
     categoriaTratada = 'bodysplash';
   } else if (catLower.includes('creme') || catLower.includes('hidratante')) {
@@ -74,6 +94,7 @@ function mapAirtableRecordToProduct(record) {
   } else if (catLower.includes('mini')) {
     categoriaTratada = 'miniaturas';
   }
+
   let imageUrl = "https://via.placeholder.com/300";
   
   const imgObj = (f.imagem && Array.isArray(f.imagem) && f.imagem.length > 0) ? f.imagem[0]
@@ -89,7 +110,6 @@ function mapAirtableRecordToProduct(record) {
   }
 
   const preco = extractPrice(f);
-
   const status2 = f['Status 2'] || f.Status2 || f.Disponivel || f.disponivel;
   const isAvailable = status2 === 'Disponivel' || status2 === 'Disponível' || status2 === true || status2 === undefined;
 
@@ -129,7 +149,7 @@ async function loadProductsFromAirtable() {
 }
 
 // ==========================================
-// 2. ESTADO GLOBAL & PERSISTÊNCIA
+// 3. ESTADO GLOBAL & PERSISTÊNCIA
 // ==========================================
 let cart = [];
 let currentCategory = "todos";
@@ -152,18 +172,8 @@ function loadCart() {
   }
 }
 
-function sanitizeInput(str) {
-  if (!str) return "";
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").trim();
-}
-
-function escapeHTML(str) {
-  if (str === null || str === undefined) return "";
-  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-}
-
 // ==========================================
-// 3. TOAST FLUTUANTE
+// 4. TOAST FLUTUANTE
 // ==========================================
 function showToast(message) {
   let container = document.getElementById('toast-container');
@@ -187,12 +197,13 @@ function showToast(message) {
 }
 
 // ==========================================
-// 4. PRECIFICAÇÃO DINÂMICA
+// 5. PRECIFICAÇÃO DINÂMICA
 // ==========================================
 function getCategoryQuantities(cartState = cart) {
   const totals = {
-    '50ml': 0, '100ml': 0, 'bodysplash': 0,
-    'cremes': 0, 'miniaturas': 0, 'Wepink': 0, totalGeral: 0
+    '50ml': 0, '100ml': 0, '150ml': 0,
+    'bodysplash': 0, 'bodybrand': 0, 'cremes': 0,
+    'miniaturas': 0, 'Wepink': 0, totalGeral: 0
   };
 
   for (let item of cartState) {
@@ -269,11 +280,21 @@ function getItemUnitPrice(item, cartState = cart, totals = null) {
 
 function isWholesaleOrder(cartState = cart) {
   const q = getCategoryQuantities(cartState);
-  return q.totalGeral >= 10 || q['50ml'] >= 6 || q['100ml'] >= 10 || q['bodysplash'] >= 10 || q['cremes'] >= 10 || q['Wepink'] >= 6 || q['miniaturas'] >= 6 || q['150ml'] >= 10;
+  return (
+    q.totalGeral >= 10 ||
+    q['50ml'] >= 6 ||
+    q['100ml'] >= 10 ||
+    q['150ml'] >= 10 ||
+    q['bodysplash'] >= 10 ||
+    q['bodybrand'] >= 10 ||
+    q['cremes'] >= 10 ||
+    q['Wepink'] >= 6 ||
+    q['miniaturas'] >= 6
+  );
 }
 
 // ==========================================
-// 5. RENDERIZAÇÃO E ATUALIZAÇÃO DA VITRINE
+// 6. RENDERIZAÇÃO E ATUALIZAÇÃO DA VITRINE
 // ==========================================
 function handleSearch() {
   const input = document.getElementById('search-input');
@@ -289,13 +310,13 @@ function renderCardPriceHTML(p, unitPrice, isAvailable) {
   const isDiscounted = unitPrice < p.retailPrice;
   if (isDiscounted) {
     return `
-      <div class="price-retail">De: <span class="price-old">R$ ${p.retailPrice.toFixed(2).replace('.', ',')}</span></div>
+      <div class="price-retail">De: <span class="price-old">${formatBRL(p.retailPrice)}</span></div>
       <div class="price-wholesale" style="color: var(--accent-gold, #d4af37); font-weight: bold; font-size: 1rem;">
-        Por: R$ ${unitPrice.toFixed(2).replace('.', ',')} un
+        Por: ${formatBRL(unitPrice)} un
       </div>`;
   }
   return `
-    <div class="price-retail">Valor unitário: <span>R$ ${p.retailPrice.toFixed(2).replace('.', ',')}</span></div>
+    <div class="price-retail">Valor unitário: <span>${formatBRL(p.retailPrice)}</span></div>
     <div class="price-wholesale" style="font-size: 0.8rem; opacity: 0.85;">Desconto progressivo no atacado</div>`;
 }
 
@@ -406,7 +427,7 @@ function filterCategory(cat, btn = null) {
 }
 
 // ==========================================
-// 6. CONTROLE DA GAVETA LATERAL
+// 7. CONTROLE DA GAVETA LATERAL
 // ==========================================
 function toggleCategoryDrawer() {
   const drawer = document.getElementById('category-drawer');
@@ -423,7 +444,7 @@ function selectDrawerCategory(category, btnElement) {
 }
 
 // ==========================================
-// 7. MODAL DE DETALHES DO PRODUTO
+// 8. MODAL DE DETALHES DO PRODUTO
 // ==========================================
 function openProductModal(id) {
   const p = productsData.find(item => String(item.id) === String(id));
@@ -455,7 +476,7 @@ function openProductModal(id) {
     <span class="badge ${badgeClassSafe}" style="margin-top: 10px; display: inline-block;">${badgeSafe}</span>
     <h2 class="modal-title" style="margin-top: 10px; color: #ffffff; font-size: 1.2rem;">${nameSafe}</h2>
     <div class="price-wholesale" style="font-size: 1.1rem; margin: 8px 0; color: var(--accent-gold, #d4af37);">
-      Valor base: R$ ${p.retailPrice.toFixed(2).replace('.', ',')}
+      Valor base: ${formatBRL(p.retailPrice)}
     </div>
     <p class="modal-desc" style="color: #a1a1aa; font-size: 0.9rem; line-height: 1.4;">${descSafe}</p>
     ${modalButton}
@@ -474,7 +495,7 @@ function closeProductModal() {
 }
 
 // ==========================================
-// 8. GERENCIAMENTO DO CARRINHO
+// 9. GERENCIAMENTO DO CARRINHO
 // ==========================================
 function addToCart(id, btn) {
   const p = productsData.find(item => String(item.id) === String(id));
@@ -558,7 +579,7 @@ function updateCart() {
             <div class="cart-item" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #27272a;">
               <div class="cart-item-info">
                 <h4 style="font-size:0.88rem; color:#ffffff; margin:0 0 4px 0;">${nameSafe}</h4>
-                <small style="color:var(--accent-gold, #d4af37);">R$ ${unitPrice.toFixed(2).replace('.', ',')} un ${discountTag}</small>
+                <small style="color:var(--accent-gold, #d4af37);">${formatBRL(unitPrice)} un ${discountTag}</small>
               </div>
               <div class="qty-controls" style="display: flex; align-items: center; gap: 4px;">
                 <button type="button" onclick="event.preventDefault(); updateQty('${idSafe}', -1);">-</button>
@@ -567,7 +588,6 @@ function updateCart() {
                   min="1" 
                   value="${item.qty}" 
                   onchange="setQty('${idSafe}', this.value)"
-                  onblur="setQty('${idSafe}', this.value)"
                   style="width: 45px; text-align: center; background: #18181b; border: 1px solid #3f3f46; color: #ffffff; border-radius: 6px; padding: 4px; font-size: 0.85rem; outline: none;"
                 />
                 <button type="button" onclick="event.preventDefault(); updateQty('${idSafe}', 1);">+</button>
@@ -583,8 +603,8 @@ function updateCart() {
   const modalTotal = document.getElementById('modal-total');
   const savingsBox = document.getElementById('cart-savings');
 
-  const formattedTotal = `R$ ${totalValue.toFixed(2).replace('.', ',')}`;
-  const formattedSubtotal = `R$ ${totalRetailValue.toFixed(2).replace('.', ',')}`;
+  const formattedTotal = formatBRL(totalValue);
+  const formattedSubtotal = formatBRL(totalRetailValue);
 
   if (count) count.innerText = totalItems;
   if (totalBar) totalBar.innerText = formattedTotal;
@@ -595,7 +615,7 @@ function updateCart() {
 
   if (savingsBox) {
     if (savingsAmount > 0) {
-      savingsBox.innerHTML = `🔥 <strong>Economia no Atacado: R$ ${savingsAmount.toFixed(2).replace('.', ',')}!</strong>`;
+      savingsBox.innerHTML = `🔥 <strong>Economia no Atacado: ${formatBRL(savingsAmount)}!</strong>`;
       savingsBox.classList.remove('hidden');
     } else {
       savingsBox.classList.add('hidden');
@@ -616,7 +636,7 @@ function closeCart() {
 }
 
 // ==========================================
-// 9. MODAL TABELA DE PREÇOS
+// 10. MODAL TABELA DE PREÇOS
 // ==========================================
 function openPriceTableModal() {
   const modal = document.getElementById('price-table-modal');
@@ -629,7 +649,7 @@ function closePriceTableModal() {
 }
 
 // ==========================================
-// 10. MÁSCARAS E VALIDAÇÃO DE FORMULÁRIO
+// 11. MÁSCARAS E VALIDAÇÃO DE FORMULÁRIO
 // ==========================================
 function setupInputMasks() {
   const cpfInput = document.getElementById('client-cpf');
@@ -676,7 +696,7 @@ function validateCPF(cpf) {
 }
 
 // ==========================================
-// 11. ENVIO PARA WHATSAPP
+// 12. ENVIO PARA WHATSAPP
 // ==========================================
 function sendWhatsApp() {
   clearCheckoutError();
@@ -723,16 +743,16 @@ function sendWhatsApp() {
     const itemTotal = unitPrice * item.qty;
     totalValue += itemTotal;
     totalRetailValue += item.retailPrice * item.qty;
-    msg += `• ${item.qty}x ${item.name}\n  (R$ ${unitPrice.toFixed(2).replace('.', ',')} un) = *R$ ${itemTotal.toFixed(2).replace('.', ',')}*\n\n`;
+    msg += `• ${item.qty}x ${item.name}\n  (${formatBRL(unitPrice)} un) = *${formatBRL(itemTotal)}*\n\n`;
   });
 
   const savings = totalRetailValue - totalValue;
 
   msg += `------------------------------------\n`;
-  msg += `💵 *Valor Varejo:* R$ ${totalRetailValue.toFixed(2).replace('.', ',')}\n`;
-  if (savings > 0) msg += `🔥 *Desconto Atacado:* - R$ ${savings.toFixed(2).replace('.', ',')}\n`;
+  msg += `💵 *Valor Varejo:* ${formatBRL(totalRetailValue)}\n`;
+  if (savings > 0) msg += `🔥 *Desconto Atacado:* - ${formatBRL(savings)}\n`;
   if (isWholesale) msg += `🎁 *BRINDE:* 1x Amostra Grátis!\n`;
-  msg += `\n💰 *TOTAL DOS PRODUTOS: R$ ${totalValue.toFixed(2).replace('.', ',')}*\n`;
+  msg += `\n💰 *TOTAL DOS PRODUTOS: ${formatBRL(totalValue)}*\n`;
 
   const rawPhone = "558896880584"; 
   window.open(`https://wa.me/${rawPhone}?text=${encodeURIComponent(msg)}`, '_blank');
@@ -755,7 +775,7 @@ function clearCheckoutError() {
 }
 
 // ==========================================
-// 12. CARROSSEL & EVENTOS
+// 13. CARROSSEL & EVENTOS
 // ==========================================
 function goToSlide(index) {
   const sliderTrack = document.getElementById('sliderTrack');
