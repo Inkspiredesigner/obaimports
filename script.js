@@ -210,6 +210,11 @@ function getItemUnitPrice(item, cartState = cart, totals = null) {
   const totalGeral = q.totalGeral || 0;
   const catQty = q[item.category] || 0;
 
+  if (item.category === 'bodybrand') {
+    if (catQty >= 10 || totalGeral >= 10) return 48.00;
+    return item.retailPrice;
+  }
+
   if (item.category === '150ml') {
     if (catQty >= 100) return 18.99;
     if (catQty >= 10)  return 19.99;
