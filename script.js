@@ -21,7 +21,6 @@ function parsePrice(val) {
   if (!val) return 0;
   
   let str = String(val).trim();
-  // Trata padrão brasileiro (ex: 1.250,50 -> 1250.50)
   if (str.includes(',')) {
     str = str.replace(/\./g, '').replace(',', '.');
   }
@@ -38,6 +37,24 @@ function extractPrice(f) {
     }
   }
   return 0;
+}
+
+function clearCheckoutError() {
+  const errEl = document.getElementById('checkout-error');
+  if (errEl) {
+    errEl.innerText = '';
+    errEl.classList.add('hidden');
+  }
+}
+
+function showCheckoutError(msg) {
+  const errEl = document.getElementById('checkout-error');
+  if (errEl) {
+    errEl.innerText = msg;
+    errEl.classList.remove('hidden');
+  } else {
+    alert(msg);
+  }
 }
 
 // ==========================================
@@ -118,7 +135,6 @@ function mapAirtableRecordToProduct(record) {
   const status2 = f['Status 2'] || f.Status2 || f.Disponivel || f.disponivel;
   const isAvailable = status2 === 'Disponivel' || status2 === 'Disponível' || status2 === true || status2 === undefined;
 
-  // Garante ID limpo para uso seguro em atributos HTML e seletores DOM
   const safeId = String(record.id).replace(/[^a-zA-Z0-9_-]/g, '');
 
   return {
@@ -341,7 +357,7 @@ function renderCardActionHTML(p, isAvailable) {
     return `
       <div style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
         <button type="button" class="add-btn" style="padding: 6px 12px; width: auto;" onclick="event.stopPropagation(); updateQty('${idSafe}', -1);">-</button>
-        <span style="color: #ffffff; font-weight: bold; font-size: 0.95rem;">${currentQty}</span>
+        <span style="color: #000000; font-weight: bold; font-size: 0.95rem;">${currentQty}</span>
         <button type="button" class="add-btn" style="padding: 6px 12px; width: auto;" onclick="event.stopPropagation(); updateQty('${idSafe}', 1);">+</button>
       </div>`;
   }
@@ -480,13 +496,13 @@ function openProductModal(id) {
     : `<button type="button" class="add-btn" disabled style="width: 100%; margin-top: 15px; padding: 12px; font-size: 1rem; background: #27272a; color: #71717a; cursor: not-allowed;">Produto Esgotado</button>`;
 
   body.innerHTML = `
-    <img src="${imageSafe}" loading="lazy" class="modal-img" alt="${nameSafe}" style="width: 100%; max-height: 250px; object-fit: contain; border-radius: 8px;">
+    <img src="${imageSafe}" loading="lazy" class="modal-img" alt="${nameSafe}">
     <span class="badge ${badgeClassSafe}" style="margin-top: 10px; display: inline-block;">${badgeSafe}</span>
-    <h2 class="modal-title" style="margin-top: 10px; color: #ffffff; font-size: 1.2rem;">${nameSafe}</h2>
-    <div class="price-wholesale" style="font-size: 1.1rem; margin: 8px 0; color: var(--accent-gold, #d4af37);">
+    <h2 class="modal-title" style="margin-top: 10px; color: #0f172a;">${nameSafe}</h2>
+    <div class="price-wholesale" style="font-size: 1.15rem; margin: 8px 0; color: #d97706; font-weight: 800;">
       Valor base: ${formatBRL(p.retailPrice)}
     </div>
-    <p class="modal-desc" style="color: #a1a1aa; font-size: 0.9rem; line-height: 1.4;">${descSafe}</p>
+    <p class="modal-desc" style="color: #475569; font-size: 0.9rem; line-height: 1.5;">${descSafe}</p>
     ${modalButton}
   `;
 
@@ -596,7 +612,7 @@ function updateCart() {
                   min="1" 
                   value="${item.qty}" 
                   onchange="setQty('${idSafe}', this.value)"
-                  style="width: 45px; text-align: center; background: #18181b; border: 1px solid #3f3f46; color: #ffffff; border-radius: 6px; padding: 4px; font-size: 0.85rem; outline: none;"
+                  style="width: 45px; text-align: center; background: #ffffff; border: 1px solid #3f3f46; color: #000000; font-weight: 800; border-radius: 6px; padding: 4px; font-size: 0.85rem; outline: none;"
                 />
                 <button type="button" onclick="event.preventDefault(); updateQty('${idSafe}', 1);">+</button>
               </div>
@@ -704,7 +720,7 @@ function validateCPF(cpf) {
 }
 
 // ==========================================
-// 12. ENVIO PARA WHATSAPP (COM PROTEÇÃO LGPD)
+// 12. ENVIO PARA WHATSAPP & IMPRESSÃO EM PDF
 // ==========================================
 function sendWhatsApp() {
   if (typeof cart === 'undefined' || cart.length === 0) {
@@ -728,7 +744,6 @@ function sendWhatsApp() {
   let totalValue = 0;
   let totalRetailValue = 0;
   
-  // MENSAGEM PRIVADA (Apenas para o seu WhatsApp - Dados Completos)
   let msg = `📦 *NOVO PEDIDO - OBA PERFUMES*\n------------------------------------\n`;
   msg += `👤 *Cliente:* ${name}\n📍 *Cidade/UF:* ${city}\n`;
   if (cpf) msg += `🪪 *CPF:* ${cpf}\n`;
@@ -764,7 +779,6 @@ function sendWhatsApp() {
   if (savings > 0) msg += `🔥 *Desconto Atacado:* - ${formatBRL(savings)}\n`;
   msg += `\n💰 *TOTAL DOS PRODUTOS: ${formatBRL(totalValue)}*\n`;
 
-  // COMPROVANTE PÚBLICO (Apenas dados não sensíveis - Proteção LGPD)
   try {
     const nameArray = name.split(' ');
     const safeName = nameArray.length > 1 ? `${nameArray[0]} ${nameArray[1][0]}.` : nameArray[0];
@@ -792,9 +806,7 @@ function sendWhatsApp() {
   const rawPhone = "558896880584";
   window.location.href = `https://wa.me/${rawPhone}?text=${encodeURIComponent(msg)}`;
 }
-// ==========================================
-// IMPRESSÃO / SALVAR PEDIDO EM PDF
-// ==========================================
+
 function printOrder() {
   clearCheckoutError();
 
@@ -890,14 +902,14 @@ function printOrder() {
       </table>
 
       <div class="totals">
-        <p style="margin: 3px 0;">Valor Varejo: ${formatBRL(totalRetailValue)}</p>
-        ${savings > 0 ? `<p style="margin: 3px 0; color: #dc2626;">Desconto Atacado: -${formatBRL(savings)}</p>` : ''}
-        <div class="total-final">TOTAL DO PEDIDO: ${formatBRL(totalValue)}</div>
+        <p><strong>Subtotal (Varejo):</strong> ${formatBRL(totalRetailValue)}</p>
+        ${savings > 0 ? `<p style="color: #d97706;"><strong>Desconto Atacado:</strong> -${formatBRL(savings)}</p>` : ''}
+        <div class="total-final">Total Final: ${formatBRL(totalValue)}</div>
       </div>
 
       <script>
-        window.onload = function() { 
-          window.print(); 
+        window.onload = function() {
+          window.print();
         };
       </script>
     </body>
@@ -905,6 +917,7 @@ function printOrder() {
   `);
   printWindow.document.close();
 }
+
 // ==========================================
 // 13. CARROSSEL & EVENTOS
 // ==========================================
