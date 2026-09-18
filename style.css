@@ -1568,3 +1568,40 @@ select:focus-visible {
     pointer-events: none;
   }
 }
+/* ==========================================
+   AÇÕES DO CHECKOUT & BOTÃO DE IMPRESSÃO / PDF
+   ========================================== */
+.checkout-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  width: 100%;
+}
+
+.checkout-actions .notice-btn {
+  flex: 1;
+  background: var(--bg-elevated, #27272a);
+  color: var(--text-main, #ffffff);
+  border: 1px solid var(--border-color, #3f3f46);
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.checkout-actions .notice-btn:hover {
+  background: var(--border-color, #3f3f46);
+  color: #ffffff;
+  border-color: var(--accent-gold, #d4af37);
+  transform: translateY(-1px);
+}
+
+.checkout-actions .notice-btn:active {
+  transform: translateY(0);
+}
