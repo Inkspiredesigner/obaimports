@@ -704,20 +704,14 @@ function validateCPF(cpf) {
 }
 
 // ==========================================
-// 12. ENVIO PARA WHATSAPP (CORRIGIDO E SEGURO)
+// 12. ENVIO PARA WHATSAPP (VERSÃO ULTRA-ROBUSTA)
 // ==========================================
 function sendWhatsApp() {
-  clearCheckoutError();
-
-  // 1. Validação do Carrinho
-  if (!cart || cart.length === 0) {
-    const msgErro = "⚠️ O seu carrinho está vazio!";
-    showCheckoutError(msgErro);
-    alert(msgErro);
+  if (typeof cart === 'undefined' || cart.length === 0) {
+    alert("⚠️ Seu carrinho está vazio!");
     return;
   }
 
-  // 2. Coleta dos Campos
   const name = (document.getElementById('client-name')?.value || '').trim();
   const city = (document.getElementById('client-city')?.value || '').trim();
   const address = (document.getElementById('client-address')?.value || '').trim();
@@ -726,89 +720,69 @@ function sendWhatsApp() {
   const payment = (document.getElementById('payment-method')?.value || '').trim() || "Não informado";
   const shipping = (document.getElementById('shipping-method')?.value || '').trim() || "Não informado";
 
-  // 3. Validação dos Campos Obrigatórios
-  if (!name || !city || !address) { 
-    const msgErro = "⚠️ Por favor, preencha Nome, Cidade e Endereço.";
-    showCheckoutError(msgErro); 
-    alert(msgErro);
-    return; 
-  }
-
-  if (cpf && typeof validateCPF === "function" && !validateCPF(cpf)) {
-    const msgErro = "⚠️ O CPF informado é inválido.";
-    showCheckoutError(msgErro);
-    alert(msgErro);
+  if (!name || !city || !address) {
+    alert("⚠️ Por favor, preencha os campos obrigatórios: Nome, Cidade e Endereço.");
     return;
   }
 
-  try {
-    const totalsCategory = getCategoryQuantities(cart);
-    const isWholesale = isWholesaleOrder(cart);
-    let totalValue = 0;
-    let totalRetailValue = 0;
+  let totalValue = 0;
+  let totalRetailValue = 0;
+  let msg = `📦 *NOVO PEDIDO - OBA PERFUMES*\n------------------------------------\n`;
+  msg += `👤 *Cliente:* ${name}\n📍 *Cidade/UF:* ${city}\n`;
+  if (cpf) msg += `🪪 *CPF:* ${cpf}\n`;
+  msg += `🏠 *Endereço:* ${address}\n`;
+  if (cep) msg += `📮 *CEP:* ${cep}\n`;
+  msg += `💳 *Pagamento:* ${payment}\n🚚 *Forma de Envio:* ${shipping}\n------------------------------------\n`;
 
-    let msg = `📦 *NOVO PEDIDO - OBA PERFUMES*\n------------------------------------\n`;
-    msg += `👤 *Cliente:* ${name}\n📍 *Cidade/UF:* ${city}\n`;
-    if (cpf) msg += `🪪 *CPF:* ${cpf}\n`;
-    msg += `🏠 *Endereço:* ${address}\n`;
-    if (cep) msg += `📮 *CEP:* ${cep}\n`;
-    msg += `💳 *Pagamento:* ${payment}\n🚚 *Forma de Envio:* ${shipping}\n------------------------------------\n`;
+  msg += `🛒 *ITENS DO PEDIDO:*\n\n`;
 
-    msg += `🛒 *ITENS DO PEDIDO:*\n\n`;
+  const orderItemsData = [];
+  const totalsCategory = typeof getCategoryQuantities === 'function' ? getCategoryQuantities(cart) : null;
 
-    const orderItemsData = [];
+  cart.forEach(item => {
+    const unitPrice = typeof getItemUnitPrice === 'function' ? getItemUnitPrice(item, cart, totalsCategory) : (item.retailPrice || 0);
+    const itemTotal = unitPrice * item.qty;
+    totalValue += itemTotal;
+    totalRetailValue += (item.retailPrice || unitPrice) * item.qty;
 
-    cart.forEach(item => {
-      const unitPrice = getItemUnitPrice(item, cart, totalsCategory);
-      const itemTotal = unitPrice * item.qty;
-      totalValue += itemTotal;
-      totalRetailValue += item.retailPrice * item.qty;
+    msg += `• ${item.qty}x ${item.name}\n  (${formatBRL(unitPrice)} un) = *${formatBRL(itemTotal)}*\n\n`;
 
-      msg += `• ${item.qty}x ${item.name}\n  (${formatBRL(unitPrice)} un) = *${formatBRL(itemTotal)}*\n\n`;
-
-      orderItemsData.push({
-        name: item.name,
-        qty: item.qty,
-        unitPrice: unitPrice,
-        subtotal: itemTotal
-      });
+    orderItemsData.push({
+      name: item.name,
+      qty: item.qty,
+      unitPrice: unitPrice,
+      subtotal: itemTotal
     });
+  });
 
-    const savings = totalRetailValue - totalValue;
+  const savings = totalRetailValue - totalValue;
 
-    msg += `------------------------------------\n`;
-    msg += `💵 *Valor Varejo:* ${formatBRL(totalRetailValue)}\n`;
-    if (savings > 0) msg += `🔥 *Desconto Atacado:* - ${formatBRL(savings)}\n`;
-    if (isWholesale) msg += `🎁 *BRINDE:* 1x Amostra Grátis!\n`;
-    msg += `\n💰 *TOTAL DOS PRODUTOS: ${formatBRL(totalValue)}*\n`;
+  msg += `------------------------------------\n`;
+  msg += `💵 *Valor Varejo:* ${formatBRL(totalRetailValue)}\n`;
+  if (savings > 0) msg += `🔥 *Desconto Atacado:* - ${formatBRL(savings)}\n`;
+  msg += `\n💰 *TOTAL DOS PRODUTOS: ${formatBRL(totalValue)}*\n`;
 
-    // 4. Geração do Link do PDF / Comprovante
-    try {
-      const orderPayload = {
-        name, city, address, cep, cpf, payment, shipping,
-        items: orderItemsData,
-        totalRetailValue, savings, totalValue,
-        date: new Date().toLocaleDateString('pt-BR'),
-        time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-      };
+  // Geração do Link com codificação segura para acentos
+  try {
+    const orderPayload = {
+      name, city, address, cep, cpf, payment, shipping,
+      items: orderItemsData,
+      totalRetailValue, savings, totalValue,
+      date: new Date().toLocaleDateString('pt-BR'),
+      time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    };
 
-      const encodedData = btoa(unescape(encodeURIComponent(JSON.stringify(orderPayload))));
-      const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
-      const pdfLink = `${baseUrl}/comprovante.html?pedido=${encodedData}`;
+    const encodedData = encodeURIComponent(JSON.stringify(orderPayload));
+    const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
+    const pdfLink = `${baseUrl}/comprovante.html?pedido=${encodedData}`;
 
-      msg += `\n📄 *Link para baixar PDF / Comprovante:*\n${pdfLink}\n`;
-    } catch (e) {
-      console.error("Erro ao gerar link do PDF:", e);
-    }
-
-    // 5. Redirecionamento para o WhatsApp
-    const rawPhone = "558896880584"; 
-    window.open(`https://wa.me/${rawPhone}?text=${encodeURIComponent(msg)}`, '_blank');
-
-  } catch (err) {
-    console.error("Erro ao processar pedido:", err);
-    alert("Ocorreu um erro ao processar o pedido. Verifique a consola do navegador.");
+    msg += `\n📄 *Link para baixar PDF / Comprovante:*\n${pdfLink}\n`;
+  } catch (e) {
+    console.error("Erro ao gerar o link do PDF:", e);
   }
+
+  const rawPhone = "+558896880584";
+  window.location.href = `https://wa.me/${rawPhone}?text=${encodeURIComponent(msg)}`;
 }
 // ==========================================
 // IMPRESSÃO / SALVAR PEDIDO EM PDF
