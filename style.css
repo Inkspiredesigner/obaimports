@@ -572,7 +572,7 @@ select:focus-visible {
 
 .add-btn {
   background: linear-gradient(135deg, var(--accent-gold), #efb810);
-  color: #ffffff;
+  color: #ce1616;
   border: none;
   padding: 9px;
   border-radius: 6px;
