@@ -722,7 +722,7 @@ function validateCPF(cpf) {
 // ==========================================
 // 12. ENVIO PARA WHATSAPP & IMPRESSÃO EM PDF
 // ==========================================
-function sendWhatsApp() {
+async function sendWhatsApp() {
   if (typeof cart === 'undefined' || cart.length === 0) {
     alert("⚠️ Seu carrinho está vazio!");
     return;
@@ -796,9 +796,21 @@ function sendWhatsApp() {
 
     const encodedData = encodeURIComponent(JSON.stringify(orderPayload));
     const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
-    const pdfLink = `${baseUrl}/comprovante.html?pedido=${encodedData}`;
+    const fullPdfLink = `${baseUrl}/comprovante.html?pedido=${encodedData}`;
 
-   msg += `\n📄 *Link do comprovante da compra de ${name}:*\n${pdfLink}\n`;
+    // Chamada à API gratuita is.gd para reduzir a URL no WhatsApp
+    let finalLink = fullPdfLink;
+    try {
+      const shortenerRes = await fetch(`https://is.gd/create.php?format=json&url=${encodeURIComponent(fullPdfLink)}`);
+      const shortenerData = await shortenerRes.json();
+      if (shortenerData.shorturl) {
+        finalLink = shortenerData.shorturl;
+      }
+    } catch (err) {
+      console.warn("Não foi possível encurtar o link, enviando link original:", err);
+    }
+
+    msg += `\n📄 *Link do comprovante da compra de ${name}:*\n${finalLink}\n`;
   } catch (e) {
     console.error("Erro ao gerar o link do PDF:", e);
   }
@@ -917,7 +929,6 @@ function printOrder() {
   `);
   printWindow.document.close();
 }
-
 // ==========================================
 // 13. CARROSSEL & EVENTOS
 // ==========================================
