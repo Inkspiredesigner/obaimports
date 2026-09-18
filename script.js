@@ -704,7 +704,7 @@ function validateCPF(cpf) {
 }
 
 // ==========================================
-// 12. ENVIO PARA WHATSAPP (VERSÃO ULTRA-ROBUSTA)
+// 12. ENVIO PARA WHATSAPP (COM PROTEÇÃO LGPD)
 // ==========================================
 function sendWhatsApp() {
   if (typeof cart === 'undefined' || cart.length === 0) {
@@ -720,21 +720,23 @@ function sendWhatsApp() {
   const payment = (document.getElementById('payment-method')?.value || '').trim() || "Não informado";
   const shipping = (document.getElementById('shipping-method')?.value || '').trim() || "Não informado";
 
-  if (typeof cart === 'undefined' || cart.length === 0) {
+  if (!name || !city || !address) {
     alert("⚠️ Por favor, preencha os campos obrigatórios: Nome, Cidade e Endereço.");
     return;
   }
 
   let totalValue = 0;
   let totalRetailValue = 0;
-  let msg = `*NOVO PEDIDO - OBA PERFUMES*\n------------------------------------\n`;
-  msg += `*Cliente:* ${name}\n*Cidade/UF:* ${city}\n`;
-  if (cpf) msg += `*CPF:* ${cpf}\n`;
-  msg += `*Endereço:* ${address}\n`;
-  if (cep) msg += `*CEP:* ${cep}\n`;
-  msg += `*Pagamento:* ${payment}\n*Forma de Envio:* ${shipping}\n------------------------------------\n`;
+  
+  // MENSAGEM PRIVADA (Apenas para o seu WhatsApp - Dados Completos)
+  let msg = `📦 *NOVO PEDIDO - OBA PERFUMES*\n------------------------------------\n`;
+  msg += `👤 *Cliente:* ${name}\n📍 *Cidade/UF:* ${city}\n`;
+  if (cpf) msg += `🪪 *CPF:* ${cpf}\n`;
+  msg += `🏠 *Endereço:* ${address}\n`;
+  if (cep) msg += `📮 *CEP:* ${cep}\n`;
+  msg += `💳 *Pagamento:* ${payment}\n🚚 *Forma de Envio:* ${shipping}\n------------------------------------\n`;
 
-  msg += `*ITENS DO PEDIDO:*\n\n`;
+  msg += `🛒 *ITENS DO PEDIDO:*\n\n`;
 
   const orderItemsData = [];
   const totalsCategory = typeof getCategoryQuantities === 'function' ? getCategoryQuantities(cart) : null;
@@ -758,14 +760,20 @@ function sendWhatsApp() {
   const savings = totalRetailValue - totalValue;
 
   msg += `------------------------------------\n`;
-  msg += `*Valor Varejo:* ${formatBRL(totalRetailValue)}\n`;
-  if (savings > 0) msg += `*Desconto Atacado:* - ${formatBRL(savings)}\n`;
-  msg += `\n*TOTAL DOS PRODUTOS: ${formatBRL(totalValue)}*\n`;
+  msg += `💵 *Valor Varejo:* ${formatBRL(totalRetailValue)}\n`;
+  if (savings > 0) msg += `🔥 *Desconto Atacado:* - ${formatBRL(savings)}\n`;
+  msg += `\n💰 *TOTAL DOS PRODUTOS: ${formatBRL(totalValue)}*\n`;
 
-  // Geração do Link com codificação segura para acentos
+  // COMPROVANTE PÚBLICO (Apenas dados não sensíveis - Proteção LGPD)
   try {
+    const nameArray = name.split(' ');
+    const safeName = nameArray.length > 1 ? `${nameArray[0]} ${nameArray[1][0]}.` : nameArray[0];
+
     const orderPayload = {
-      name, city, address, cep, cpf, payment, shipping,
+      client: safeName,
+      city: city,
+      payment: payment,
+      shipping: shipping,
       items: orderItemsData,
       totalRetailValue, savings, totalValue,
       date: new Date().toLocaleDateString('pt-BR'),
@@ -776,12 +784,12 @@ function sendWhatsApp() {
     const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
     const pdfLink = `${baseUrl}/comprovante.html?pedido=${encodedData}`;
 
-    msg += `\n*Link para baixar PDF / Comprovante:*\n${pdfLink}\n`;
+    msg += `\n📄 *Link do Comprovante (PDF):*\n${pdfLink}\n`;
   } catch (e) {
     console.error("Erro ao gerar o link do PDF:", e);
   }
 
-  const rawPhone = "+558896880584";
+  const rawPhone = "558896880584";
   window.location.href = `https://wa.me/${rawPhone}?text=${encodeURIComponent(msg)}`;
 }
 // ==========================================
