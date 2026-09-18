@@ -40,66 +40,84 @@
         return;
       }
 
+      let data = null;
+
+      // Tentativa inteligente de leitura dos dados
       try {
-        const data = JSON.parse(decodeURIComponent(escape(atob(rawData))));
-
-        let itemsHtml = (data.items || []).map(item => `
-          <tr>
-            <td>${item.name}</td>
-            <td style="text-align: center;">${item.qty}</td>
-            <td style="text-align: right;">${formatBRL(item.unitPrice)}</td>
-            <td style="text-align: right; font-weight: bold;">${formatBRL(item.subtotal)}</td>
-          </tr>
-        `).join('');
-
-        document.getElementById('receipt-content').innerHTML = `
-          <div class="header">
-            <h1>📦 RESUMO DO PEDIDO - OBA PERFUMES</h1>
-            <p>Emissão: ${data.date || ''} às ${data.time || ''}</p>
-          </div>
-
-          <div class="info-grid">
-            <div>
-              <strong>Cliente:</strong> ${data.name || ''}<br>
-              ${data.cpf ? `<strong>CPF:</strong> ${data.cpf}<br>` : ''}
-              <strong>Endereço:</strong> ${data.address || ''}<br>
-              <strong>Cidade/UF:</strong> ${data.city || ''} ${data.cep ? `- CEP: ${data.cep}` : ''}
-            </div>
-            <div>
-              <strong>Forma de Pagamento:</strong> ${data.payment || ''}<br>
-              <strong>Forma de Envio:</strong> ${data.shipping || ''}
-            </div>
-          </div>
-
-          <table>
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th style="text-align: center;">Qtd</th>
-                <th style="text-align: right;">Unitário</th>
-                <th style="text-align: right;">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsHtml}
-            </tbody>
-          </table>
-
-          <div class="totals">
-            <p style="margin: 3px 0;">Valor Varejo: ${formatBRL(data.totalRetailValue)}</p>
-            ${data.savings > 0 ? `<p style="margin: 3px 0; color: #dc2626;">Desconto Atacado: -${formatBRL(data.savings)}</p>` : ''}
-            <div class="total-final">TOTAL DO PEDIDO: ${formatBRL(data.totalValue)}</div>
-          </div>
-        `;
-
-        // Dispara a impressão/salvar PDF automaticamente
-        setTimeout(() => {
-          window.print();
-        }, 600);
-
-      } catch (err) {
-        document.getElementById('receipt-content').innerHTML = "<p style='text-align:center; color:#ef4444;'>Erro ao carregar dados do comprovante.</p>";
+        // 1. Tenta ler direto como JSON
+        data = JSON.parse(rawData);
+      } catch (e1) {
+        try {
+          // 2. Tenta decodificar URL e ler JSON
+          data = JSON.parse(decodeURIComponent(rawData));
+        } catch (e2) {
+          try {
+            // 3. Tenta decodificar Base64 antigo
+            data = JSON.parse(decodeURIComponent(escape(atob(rawData))));
+          } catch (e3) {
+            console.error("Erro ao decodificar os dados do pedido:", e3);
+          }
+        }
       }
+
+      if (!data) {
+        document.getElementById('receipt-content').innerHTML = "<p style='text-align:center; color:#ef4444;'>Erro ao carregar dados do comprovante.</p>";
+        return;
+      }
+
+      const itemsHtml = (data.items || []).map(item => `
+        <tr>
+          <td>${item.name}</td>
+          <td style="text-align: center;">${item.qty}</td>
+          <td style="text-align: right;">${formatBRL(item.unitPrice)}</td>
+          <td style="text-align: right; font-weight: bold;">${formatBRL(item.subtotal)}</td>
+        </tr>
+      `).join('');
+
+      document.getElementById('receipt-content').innerHTML = `
+        <div class="header">
+          <h1>📦 RESUMO DO PEDIDO - OBA PERFUMES</h1>
+          <p>Emissão: ${data.date || ''} às ${data.time || ''}</p>
+        </div>
+
+        <div class="info-grid">
+          <div>
+            <strong>Cliente:</strong> ${data.name || ''}<br>
+            ${data.cpf ? `<strong>CPF:</strong> ${data.cpf}<br>` : ''}
+            <strong>Endereço:</strong> ${data.address || ''}<br>
+            <strong>Cidade/UF:</strong> ${data.city || ''} ${data.cep ? `- CEP: ${data.cep}` : ''}
+          </div>
+          <div>
+            <strong>Forma de Pagamento:</strong> ${data.payment || ''}<br>
+            <strong>Forma de Envio:</strong> ${data.shipping || ''}
+          </div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th style="text-align: center;">Qtd</th>
+              <th style="text-align: right;">Unitário</th>
+              <th style="text-align: right;">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+
+        <div class="totals">
+          <p style="margin: 3px 0;">Valor Varejo: ${formatBRL(data.totalRetailValue)}</p>
+          ${data.savings > 0 ? `<p style="margin: 3px 0; color: #dc2626;">Desconto Atacado: -${formatBRL(data.savings)}</p>` : ''}
+          <div class="total-final">TOTAL DO PEDIDO: ${formatBRL(data.totalValue)}</div>
+        </div>
+      `;
+
+      // Abre a tela de impressão / salvar PDF automaticamente após carregar
+      setTimeout(() => {
+        window.print();
+      }, 500);
     });
   </script>
 </body>
