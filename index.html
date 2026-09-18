@@ -21,9 +21,9 @@
       </div>
       <div class="slide">
         <img src="banner-3.png" alt="Lançamentos Aliba Perfumes" class="banner-img">
-    </div>
-  <div class="slide">
-        <img src="banner-4.png" alt="miniaturas Aliba Perfumes" class="banner-img">
+      </div>
+      <div class="slide">
+        <img src="banner-4.png" alt="Miniaturas Aliba Perfumes" class="banner-img">
       </div>
     </div>
 
@@ -66,7 +66,6 @@
       <button type="button" class="drawer-cat-btn" onclick="selectDrawerCategory('Wepink', this)">We Pink</button>
       <button type="button" class="drawer-cat-btn" onclick="selectDrawerCategory('150ml', this)">Bodysplash Infantil 150ml</button>
       <button type="button" class="drawer-cat-btn" onclick="selectDrawerCategory('bodybrand', this)">Body Splash brand 250ml</button>
-
     </div>
   </aside>
 
@@ -153,31 +152,26 @@
           <span>Total dos Produtos:</span>
           <strong id="modal-total">R$ 0,00</strong>
         </div>
-        <button type="button" class="whatsapp-btn" onclick="sendWhatsApp()">
-          <i class="fa-brands fa-whatsapp"></i> Enviar Pedido no WhatsApp
-        </button>
-        <div style="display: flex; gap: 10px; margin-top: 15px;">
-  <!-- Botão de Enviar WhatsApp -->
-  <button type="button" class="add-btn" onclick="sendWhatsApp()" style="flex: 2; background: #22c55e;">
-    📲 Enviar no WhatsApp
-  </button>
-  
-  <!-- Botão de Imprimir/Salvar PDF -->
-  <button type="button" class="notice-btn" onclick="printOrder()" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;">
-    🖨️ Imprimir / PDF
-  </button>
-</div>
+        
+        <div class="checkout-actions">
+          <button type="button" class="add-btn" onclick="sendWhatsApp()" style="flex: 2; background: #22c55e; color: #ffffff;">
+            <i class="fa-brands fa-whatsapp"></i> Enviar Pedido
+          </button>
+          <button type="button" class="notice-btn" onclick="printOrder()" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;">
+            <i class="fa-solid fa-print"></i> PDF
+          </button>
+        </div>
       </div>
     </div>
   </aside>
 
-  <!-- MODAL DE DETALHES DO PRODUTO (FIXED & CENTRALIZADO) -->
-<div id="product-modal" class="modal-overlay hidden">
-  <div class="modal-content">
-    <button type="button" class="close-modal-btn" onclick="closeProductModal()">&times;</button>
-    <div id="product-detail-body"></div>
+  <!-- MODAL DE DETALHES DO PRODUTO -->
+  <div id="product-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <button type="button" class="close-modal-btn" onclick="closeProductModal()">&times;</button>
+      <div id="product-detail-body"></div>
+    </div>
   </div>
-</div>
 
   <script src="script.js"></script>
 </body>
