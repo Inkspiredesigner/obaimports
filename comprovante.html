@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comprovante de Pedido - Oba Perfumes</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; padding: 20px; color: #1e293b; max-width: 700px; margin: 0 auto; background: #fff; }
+    .header { text-align: center; border-bottom: 2px solid #cbd5e1; padding-bottom: 15px; margin-bottom: 20px; }
+    .header h1 { margin: 0; font-size: 22px; color: #0f172a; }
+    .header p { margin: 5px 0 0; color: #64748b; font-size: 13px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; border: 1px solid #e2e8f0; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; }
+    th { background: #f1f5f9; text-align: left; padding: 10px; border-bottom: 2px solid #cbd5e1; color: #475569; }
+    td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
+    .totals { text-align: right; font-size: 14px; border-top: 2px solid #e2e8f0; padding-top: 15px; }
+    .total-final { font-size: 18px; color: #166534; font-weight: bold; margin-top: 5px; }
+    @media print {
+      body { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div id="receipt-content">
+    <p style="text-align: center; color: #64748b;">Carregando comprovante...</p>
+  </div>
+
+  <script>
+    function formatBRL(val) { 
+      return `R$ ${Number(val || 0).toFixed(2).replace('.', ',')}`; 
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const rawData = urlParams.get('pedido');
+
+      if (!rawData) {
+        document.getElementById('receipt-content').innerHTML = "<p style='text-align:center; color:#ef4444;'>Nenhum pedido encontrado.</p>";
+        return;
+      }
+
+      try {
+        const data = JSON.parse(decodeURIComponent(escape(atob(rawData))));
+
+        let itemsHtml = (data.items || []).map(item => `
+          <tr>
+            <td>${item.name}</td>
+            <td style="text-align: center;">${item.qty}</td>
+            <td style="text-align: right;">${formatBRL(item.unitPrice)}</td>
+            <td style="text-align: right; font-weight: bold;">${formatBRL(item.subtotal)}</td>
+          </tr>
+        `).join('');
+
+        document.getElementById('receipt-content').innerHTML = `
+          <div class="header">
+            <h1>📦 RESUMO DO PEDIDO - OBA PERFUMES</h1>
+            <p>Emissão: ${data.date || ''} às ${data.time || ''}</p>
+          </div>
+
+          <div class="info-grid">
+            <div>
+              <strong>Cliente:</strong> ${data.name || ''}<br>
+              ${data.cpf ? `<strong>CPF:</strong> ${data.cpf}<br>` : ''}
+              <strong>Endereço:</strong> ${data.address || ''}<br>
+              <strong>Cidade/UF:</strong> ${data.city || ''} ${data.cep ? `- CEP: ${data.cep}` : ''}
+            </div>
+            <div>
+              <strong>Forma de Pagamento:</strong> ${data.payment || ''}<br>
+              <strong>Forma de Envio:</strong> ${data.shipping || ''}
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th style="text-align: center;">Qtd</th>
+                <th style="text-align: right;">Unitário</th>
+                <th style="text-align: right;">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsHtml}
+            </tbody>
+          </table>
+
+          <div class="totals">
+            <p style="margin: 3px 0;">Valor Varejo: ${formatBRL(data.totalRetailValue)}</p>
+            ${data.savings > 0 ? `<p style="margin: 3px 0; color: #dc2626;">Desconto Atacado: -${formatBRL(data.savings)}</p>` : ''}
+            <div class="total-final">TOTAL DO PEDIDO: ${formatBRL(data.totalValue)}</div>
+          </div>
+        `;
+
+        // Dispara a impressão/salvar PDF automaticamente
+        setTimeout(() => {
+          window.print();
+        }, 600);
+
+      } catch (err) {
+        document.getElementById('receipt-content').innerHTML = "<p style='text-align:center; color:#ef4444;'>Erro ao carregar dados do comprovante.</p>";
+      }
+    });
+  </script>
+</body>
+</html>
