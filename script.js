@@ -704,16 +704,20 @@ function validateCPF(cpf) {
 }
 
 // ==========================================
-// 12. ENVIO PARA WHATSAPP (ATUALIZADO COM PDF)
+// 12. ENVIO PARA WHATSAPP (CORRIGIDO E SEGURO)
 // ==========================================
 function sendWhatsApp() {
   clearCheckoutError();
 
-  if (cart.length === 0) {
-    showCheckoutError("⚠️ Seu carrinho está vazio!");
+  // 1. Validação do Carrinho
+  if (!cart || cart.length === 0) {
+    const msgErro = "⚠️ O seu carrinho está vazio!";
+    showCheckoutError(msgErro);
+    alert(msgErro);
     return;
   }
 
+  // 2. Coleta dos Campos
   const name = (document.getElementById('client-name')?.value || '').trim();
   const city = (document.getElementById('client-city')?.value || '').trim();
   const address = (document.getElementById('client-address')?.value || '').trim();
@@ -722,73 +726,89 @@ function sendWhatsApp() {
   const payment = (document.getElementById('payment-method')?.value || '').trim() || "Não informado";
   const shipping = (document.getElementById('shipping-method')?.value || '').trim() || "Não informado";
 
+  // 3. Validação dos Campos Obrigatórios
   if (!name || !city || !address) { 
-    showCheckoutError("⚠️ Por favor, preencha Nome, Cidade e Endereço."); 
+    const msgErro = "⚠️ Por favor, preencha Nome, Cidade e Endereço.";
+    showCheckoutError(msgErro); 
+    alert(msgErro);
     return; 
   }
 
-  if (cpf && !validateCPF(cpf)) {
-    showCheckoutError("⚠️ CPF informado é inválido.");
+  if (cpf && typeof validateCPF === "function" && !validateCPF(cpf)) {
+    const msgErro = "⚠️ O CPF informado é inválido.";
+    showCheckoutError(msgErro);
+    alert(msgErro);
     return;
   }
 
-  const totalsCategory = getCategoryQuantities(cart);
-  const isWholesale = isWholesaleOrder(cart);
-  let totalValue = 0;
-  let totalRetailValue = 0;
+  try {
+    const totalsCategory = getCategoryQuantities(cart);
+    const isWholesale = isWholesaleOrder(cart);
+    let totalValue = 0;
+    let totalRetailValue = 0;
 
-  let msg = `📦 *NOVO PEDIDO - OBA PERFUMES*\n------------------------------------\n`;
-  msg += `👤 *Cliente:* ${name}\n📍 *Cidade/UF:* ${city}\n`;
-  if (cpf) msg += `🪪 *CPF:* ${cpf}\n`;
-  msg += `🏠 *Endereço:* ${address}\n`;
-  if (cep) msg += `📮 *CEP:* ${cep}\n`;
-  msg += `💳 *Pagamento:* ${payment}\n🚚 *Forma de Envio:* ${shipping}\n------------------------------------\n`;
+    let msg = `📦 *NOVO PEDIDO - OBA PERFUMES*\n------------------------------------\n`;
+    msg += `👤 *Cliente:* ${name}\n📍 *Cidade/UF:* ${city}\n`;
+    if (cpf) msg += `🪪 *CPF:* ${cpf}\n`;
+    msg += `🏠 *Endereço:* ${address}\n`;
+    if (cep) msg += `📮 *CEP:* ${cep}\n`;
+    msg += `💳 *Pagamento:* ${payment}\n🚚 *Forma de Envio:* ${shipping}\n------------------------------------\n`;
 
-  msg += `🛒 *ITENS DO PEDIDO:*\n\n`;
+    msg += `🛒 *ITENS DO PEDIDO:*\n\n`;
 
-  const orderItemsData = [];
+    const orderItemsData = [];
 
-  cart.forEach(item => {
-    const unitPrice = getItemUnitPrice(item, cart, totalsCategory);
-    const itemTotal = unitPrice * item.qty;
-    totalValue += itemTotal;
-    totalRetailValue += item.retailPrice * item.qty;
+    cart.forEach(item => {
+      const unitPrice = getItemUnitPrice(item, cart, totalsCategory);
+      const itemTotal = unitPrice * item.qty;
+      totalValue += itemTotal;
+      totalRetailValue += item.retailPrice * item.qty;
 
-    msg += `• ${item.qty}x ${item.name}\n  (${formatBRL(unitPrice)} un) = *${formatBRL(itemTotal)}*\n\n`;
+      msg += `• ${item.qty}x ${item.name}\n  (${formatBRL(unitPrice)} un) = *${formatBRL(itemTotal)}*\n\n`;
 
-    orderItemsData.push({
-      name: item.name,
-      qty: item.qty,
-      unitPrice: unitPrice,
-      subtotal: itemTotal
+      orderItemsData.push({
+        name: item.name,
+        qty: item.qty,
+        unitPrice: unitPrice,
+        subtotal: itemTotal
+      });
     });
-  });
 
-  const savings = totalRetailValue - totalValue;
+    const savings = totalRetailValue - totalValue;
 
-  msg += `------------------------------------\n`;
-  msg += `💵 *Valor Varejo:* ${formatBRL(totalRetailValue)}\n`;
-  if (savings > 0) msg += `🔥 *Desconto Atacado:* - ${formatBRL(savings)}\n`;
-  if (isWholesale) msg += `🎁 *BRINDE:* 1x Amostra Grátis!\n`;
-  msg += `\n💰 *TOTAL DOS PRODUTOS: ${formatBRL(totalValue)}*\n`;
+    msg += `------------------------------------\n`;
+    msg += `💵 *Valor Varejo:* ${formatBRL(totalRetailValue)}\n`;
+    if (savings > 0) msg += `🔥 *Desconto Atacado:* - ${formatBRL(savings)}\n`;
+    if (isWholesale) msg += `🎁 *BRINDE:* 1x Amostra Grátis!\n`;
+    msg += `\n💰 *TOTAL DOS PRODUTOS: ${formatBRL(totalValue)}*\n`;
 
-  // GERAÇÃO DO LINK DO PDF / COMPROVANTE
-  const orderPayload = {
-    name, city, address, cep, cpf, payment, shipping,
-    items: orderItemsData,
-    totalRetailValue, savings, totalValue,
-    date: new Date().toLocaleDateString('pt-BR'),
-    time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-  };
+    // 4. Geração do Link do PDF / Comprovante
+    try {
+      const orderPayload = {
+        name, city, address, cep, cpf, payment, shipping,
+        items: orderItemsData,
+        totalRetailValue, savings, totalValue,
+        date: new Date().toLocaleDateString('pt-BR'),
+        time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      };
 
-  const encodedData = btoa(unescape(encodeURIComponent(JSON.stringify(orderPayload))));
-  const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
-  const pdfLink = `${baseUrl}/comprovante.html?pedido=${encodedData}`;
+      const encodedData = btoa(unescape(encodeURIComponent(JSON.stringify(orderPayload))));
+      const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
+      const pdfLink = `${baseUrl}/comprovante.html?pedido=${encodedData}`;
 
-  msg += `\n📄 *Link para baixar PDF / Comprovante:*\n${pdfLink}\n`;
+      msg += `\n📄 *Link para baixar PDF / Comprovante:*\n${pdfLink}\n`;
+    } catch (e) {
+      console.error("Erro ao gerar link do PDF:", e);
+    }
 
-  const rawPhone = "558896880584"; 
-  window.open(`https://wa.me/${rawPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+    // 5. Redirecionamento para o WhatsApp
+    const rawPhone = "558896880584"; 
+    window.open(`https://wa.me/${rawPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+
+  } catch (err) {
+    console.error("Erro ao processar pedido:", err);
+    alert("Ocorreu um erro ao processar o pedido. Verifique a consola do navegador.");
+  }
 }
 // ==========================================
 // IMPRESSÃO / SALVAR PEDIDO EM PDF
