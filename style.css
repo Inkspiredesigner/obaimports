@@ -610,6 +610,24 @@ select:focus-visible {
   background-color: rgba(239, 184, 16, 0.1);
 }
 
+/* CONTADOR DE QUANTIDADE (- 11 +) */
+.qty-controls,
+.quantity-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+.qty-count,
+.qty-value,
+.qty-number,
+.quantity-controls span {
+  color: #121212 !important; /* Torna o número escuro e visível */
+  font-weight: 800;
+  font-size: 0.95rem;
+}
 /* ==========================================
    6. BOTÕES FLUTUANTES & BARRA INFERIOR
    ========================================== */
