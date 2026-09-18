@@ -16,9 +16,7 @@
     td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
     .totals { text-align: right; font-size: 14px; border-top: 2px solid #e2e8f0; padding-top: 15px; }
     .total-final { font-size: 18px; color: #166534; font-weight: bold; margin-top: 5px; }
-    @media print {
-      body { padding: 0; }
-    }
+    @media print { body { padding: 0; } }
   </style>
 </head>
 <body>
@@ -27,9 +25,7 @@
   </div>
 
   <script>
-    function formatBRL(val) { 
-      return `R$ ${Number(val || 0).toFixed(2).replace('.', ',')}`; 
-    }
+    function formatBRL(val) { return `R$ ${Number(val || 0).toFixed(2).replace('.', ',')}`; }
 
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
@@ -40,84 +36,58 @@
         return;
       }
 
-      let data = null;
-
-      // Tentativa inteligente de leitura dos dados
       try {
-        // 1. Tenta ler direto como JSON
-        data = JSON.parse(rawData);
-      } catch (e1) {
-        try {
-          // 2. Tenta decodificar URL e ler JSON
-          data = JSON.parse(decodeURIComponent(rawData));
-        } catch (e2) {
-          try {
-            // 3. Tenta decodificar Base64 antigo
-            data = JSON.parse(decodeURIComponent(escape(atob(rawData))));
-          } catch (e3) {
-            console.error("Erro ao decodificar os dados do pedido:", e3);
-          }
-        }
-      }
+        const data = JSON.parse(decodeURIComponent(rawData));
 
-      if (!data) {
-        document.getElementById('receipt-content').innerHTML = "<p style='text-align:center; color:#ef4444;'>Erro ao carregar dados do comprovante.</p>";
-        return;
-      }
+        const itemsHtml = (data.items || []).map(item => `
+          <tr>
+            <td>${item.name}</td>
+            <td style="text-align: center;">${item.qty}</td>
+            <td style="text-align: right;">${formatBRL(item.unitPrice)}</td>
+            <td style="text-align: right; font-weight: bold;">${formatBRL(item.subtotal)}</td>
+          </tr>
+        `).join('');
 
-      const itemsHtml = (data.items || []).map(item => `
-        <tr>
-          <td>${item.name}</td>
-          <td style="text-align: center;">${item.qty}</td>
-          <td style="text-align: right;">${formatBRL(item.unitPrice)}</td>
-          <td style="text-align: right; font-weight: bold;">${formatBRL(item.subtotal)}</td>
-        </tr>
-      `).join('');
-
-      document.getElementById('receipt-content').innerHTML = `
-        <div class="header">
-          <h1>📦 RESUMO DO PEDIDO - OBA PERFUMES</h1>
-          <p>Emissão: ${data.date || ''} às ${data.time || ''}</p>
-        </div>
-
-        <div class="info-grid">
-          <div>
-            <strong>Cliente:</strong> ${data.name || ''}<br>
-            ${data.cpf ? `<strong>CPF:</strong> ${data.cpf}<br>` : ''}
-            <strong>Endereço:</strong> ${data.address || ''}<br>
-            <strong>Cidade/UF:</strong> ${data.city || ''} ${data.cep ? `- CEP: ${data.cep}` : ''}
+        document.getElementById('receipt-content').innerHTML = `
+          <div class="header">
+            <h1>📦 RESUMO DO PEDIDO - OBA PERFUMES</h1>
+            <p>Emissão: ${data.date || ''} às ${data.time || ''}</p>
           </div>
-          <div>
-            <strong>Forma de Pagamento:</strong> ${data.payment || ''}<br>
-            <strong>Forma de Envio:</strong> ${data.shipping || ''}
+
+          <div class="info-grid">
+            <div>
+              <strong>Cliente:</strong> ${data.client || 'Cliente'}<br>
+              <strong>Cidade/UF:</strong> ${data.city || ''}
+            </div>
+            <div>
+              <strong>Forma de Pagamento:</strong> ${data.payment || ''}<br>
+              <strong>Forma de Envio:</strong> ${data.shipping || ''}
+            </div>
           </div>
-        </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th style="text-align: center;">Qtd</th>
-              <th style="text-align: right;">Unitário</th>
-              <th style="text-align: right;">Subtotal</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsHtml}
-          </tbody>
-        </table>
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th style="text-align: center;">Qtd</th>
+                <th style="text-align: right;">Unitário</th>
+                <th style="text-align: right;">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>${itemsHtml}</tbody>
+          </table>
 
-        <div class="totals">
-          <p style="margin: 3px 0;">Valor Varejo: ${formatBRL(data.totalRetailValue)}</p>
-          ${data.savings > 0 ? `<p style="margin: 3px 0; color: #dc2626;">Desconto Atacado: -${formatBRL(data.savings)}</p>` : ''}
-          <div class="total-final">TOTAL DO PEDIDO: ${formatBRL(data.totalValue)}</div>
-        </div>
-      `;
+          <div class="totals">
+            <p style="margin: 3px 0;">Valor Varejo: ${formatBRL(data.totalRetailValue)}</p>
+            ${data.savings > 0 ? `<p style="margin: 3px 0; color: #dc2626;">Desconto Atacado: -${formatBRL(data.savings)}</p>` : ''}
+            <div class="total-final">TOTAL DO PEDIDO: ${formatBRL(data.totalValue)}</div>
+          </div>
+        `;
 
-      // Abre a tela de impressão / salvar PDF automaticamente após carregar
-      setTimeout(() => {
-        window.print();
-      }, 500);
+        setTimeout(() => window.print(), 500);
+      } catch (err) {
+        document.getElementById('receipt-content').innerHTML = "<p style='text-align:center; color:#ef4444;'>Erro ao carregar o comprovante.</p>";
+      }
     });
   </script>
 </body>
