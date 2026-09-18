@@ -714,6 +714,7 @@ function sendWhatsApp() {
     return;
   }
 
+  // Não usa sanitizeInput para evitar transformar texto simples em entidades como &#039;
   const name = (document.getElementById('client-name')?.value || '').trim();
   const city = (document.getElementById('client-city')?.value || '').trim();
   const address = (document.getElementById('client-address')?.value || '').trim();
@@ -746,22 +747,12 @@ function sendWhatsApp() {
 
   msg += `🛒 *ITENS DO PEDIDO:*\n\n`;
 
-  const orderItemsData = [];
-
   cart.forEach(item => {
     const unitPrice = getItemUnitPrice(item, cart, totalsCategory);
     const itemTotal = unitPrice * item.qty;
     totalValue += itemTotal;
     totalRetailValue += item.retailPrice * item.qty;
-
     msg += `• ${item.qty}x ${item.name}\n  (${formatBRL(unitPrice)} un) = *${formatBRL(itemTotal)}*\n\n`;
-
-    orderItemsData.push({
-      name: item.name,
-      qty: item.qty,
-      unitPrice: unitPrice,
-      subtotal: itemTotal
-    });
   });
 
   const savings = totalRetailValue - totalValue;
@@ -772,24 +763,27 @@ function sendWhatsApp() {
   if (isWholesale) msg += `🎁 *BRINDE:* 1x Amostra Grátis!\n`;
   msg += `\n💰 *TOTAL DOS PRODUTOS: ${formatBRL(totalValue)}*\n`;
 
-  // --- GERAÇÃO DO LINK DO PDF / COMPROVANTE ---
-  const orderPayload = {
-    name, city, address, cep, cpf, payment, shipping,
-    items: orderItemsData,
-    totalRetailValue, savings, totalValue,
-    date: new Date().toLocaleDateString('pt-BR'),
-    time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-  };
-
-  const encodedData = btoa(unescape(encodeURIComponent(JSON.stringify(orderPayload))));
-  const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
-  const pdfLink = `${baseUrl}/comprovante.html?pedido=${encodedData}`;
-
-  msg += `\n📄 *Link para baixar PDF / Comprovante:*\n${pdfLink}\n`;
-
   const rawPhone = "558896880584"; 
   window.open(`https://wa.me/${rawPhone}?text=${encodeURIComponent(msg)}`, '_blank');
 }
+
+function showCheckoutError(msg) {
+  const el = document.getElementById('checkout-error');
+  if (el) { 
+    el.innerText = msg; 
+    el.classList.remove('hidden'); 
+  }
+}
+
+
+function clearCheckoutError() {
+  const el = document.getElementById('checkout-error');
+  if (el) { 
+    el.classList.add('hidden'); 
+    el.innerText = ''; 
+  }
+}
+
 // ==========================================
 // IMPRESSÃO / SALVAR PEDIDO EM PDF
 // ==========================================
