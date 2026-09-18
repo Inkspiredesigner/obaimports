@@ -935,285 +935,136 @@ select:focus-visible {
 }
 
 /* ==========================================
-   8. MODAIS E OVERLAYS
+   8. MODAIS E OVERLAYS (CORRIGIDO)
    ========================================== */
-.modal-overlay {
+.modal-overlay,
+.product-detail-modal,
+#product-modal {
   display: none;
   position: fixed;
-  top: 0; 
-  left: 0; 
-  width: 100%; 
-  height: 100%;
-  background-color: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: var(--z-modal-overlay);
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-}
-
-.modal-overlay.open {
-  display: flex;
-}
-
-.product-detail-modal {
-  position: fixed;
-  top: 0; 
+  top: 0;
   left: 0;
-  width: 100%; 
+  width: 100%;
   height: 100%;
-  background-color: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  display: none;
+  background-color: rgba(0, 0, 0, 0.7) !important; /* Escurece o fundo para dar destaque ao modal */
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 9999 !important;
   justify-content: center;
   align-items: center;
-  z-index: var(--z-modal-detail);
   padding: 15px;
 }
 
-.product-detail-modal.open {
-  display: flex;
+.modal-overlay.open,
+.product-detail-modal.open,
+#product-modal.open,
+#product-modal[style*="display: block"],
+#product-modal[style*="display: flex"] {
+  display: flex !important;
 }
 
-.product-detail-content {
-  background-color: #ffffff;
+.product-detail-content,
+.modal-content,
+#product-modal > div {
+  background-color: #ffffff !important; /* Fundo branco sólido */
   border: 1px solid var(--accent-gold);
-  border-radius: 12px;
+  border-radius: 16px;
   width: 100%;
-  max-width: 480px;
+  max-width: 440px;
   padding: 24px;
   position: relative;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   max-height: 90vh;
   overflow-y: auto;
-  color: #121212;
+  color: #121212 !important;
+  text-align: center;
+  margin: auto;
+}
+
+.modal-img,
+.product-detail-content img,
+#product-modal img {
+  width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  background-color: #f8f9fa;
+  padding: 8px;
 }
 
 .product-detail-content h2,
 .product-detail-content h3,
-.product-detail-content .modal-title {
-  color: #121212;
+.product-detail-content .modal-title,
+#product-modal h2,
+#product-modal h3 {
+  color: #0f172a !important; /* Título escuro visível */
   font-weight: 700;
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   margin-bottom: 8px;
 }
 
 .product-detail-content p,
-.product-detail-content .modal-desc {
-  color: var(--text-muted);
-  font-size: 0.95rem;
+.product-detail-content .modal-desc,
+#product-modal p {
+  color: #475569 !important; /* Descrição com leitura nítida */
+  font-size: 0.9rem !important;
   line-height: 1.5;
   margin-bottom: 14px;
+  font-weight: 400 !important;
 }
 
 .product-detail-content .price-wholesale,
-.product-detail-content .modal-price {
-  color: var(--accent-gold);
-  font-size: 1.1rem;
-  font-weight: bold;
+.product-detail-content .modal-price,
+#product-modal .price,
+#product-modal [class*="price"] {
+  color: #d97706 !important; /* Tom dourado escuro de alto contraste */
+  font-size: 1.15rem;
+  font-weight: 800 !important;
   margin-bottom: 15px;
 }
 
-.modal-img {
-  width: 100%;
-  height: 220px;
-  object-fit: cover;
-  border-radius: 8px;
-  margin-bottom: 15px;
-}
-
-.product-detail-content .add-btn {
+.product-detail-content .add-btn,
+#product-modal .add-btn {
   width: 100%;
   background: linear-gradient(135deg, var(--accent-gold), #efb810);
-  color: #ffffff;
-  font-weight: 800;
-  font-size: 1rem;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  font-size: 0.95rem;
   border: none;
-  padding: 14px;
+  padding: 12px;
   border-radius: 8px;
   box-shadow: 0 4px 15px rgba(239, 184, 16, 0.4);
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease;
 }
 
-.product-detail-content .add-btn:hover {
+.product-detail-content .add-btn:hover,
+#product-modal .add-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(239, 184, 16, 0.6);
 }
 
-.table-modal-content {
-  background: radial-gradient(circle at top right, #ffffff, #f4f4f5);
-  border: 1px solid var(--accent-gold);
-  border-radius: 16px;
-  max-width: 520px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 30px 20px;
-  position: relative;
-  color: #121212;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 30px rgba(239, 184, 16, 0.2);
-}
-
-.close-modal-btn {
+.close-modal-btn,
+.close-btn,
+#product-modal .close {
   position: absolute;
-  top: 15px; 
-  right: 20px;
-  background: none; 
+  top: 12px;
+  right: 16px;
+  background: none;
   border: none;
-  color: var(--accent-gold); 
-  font-size: 1.8rem;
+  color: #64748b !important;
+  font-size: 1.6rem;
   cursor: pointer;
+  transition: color 0.2s ease;
+  line-height: 1;
+  z-index: 10;
 }
 
-.table-modal-content h2 {
-  font-size: 1.5rem;
-  letter-spacing: 1px;
-  background: linear-gradient(135deg, #121212 30%, var(--accent-gold));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  margin-bottom: 6px;
-  text-transform: uppercase;
+.close-modal-btn:hover,
+.close-btn:hover,
+#product-modal .close:hover {
+  color: #efb810 !important;
 }
-
-.modal-subtitle {
-  color: var(--text-muted);
-  margin-bottom: 20px;
-  font-size: 0.88rem;
-  font-weight: 400;
-}
-
-.cards-slider-container {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  padding: 10px 5px 20px 5px;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.cards-slider-container::-webkit-scrollbar {
-  display: none;
-}
-
-.price-card-slide {
-  flex: 0 0 88%;
-  max-width: 320px;
-  scroll-snap-align: center;
-  background: linear-gradient(180deg, rgba(248, 249, 250, 0.9) 0%, rgba(255, 255, 255, 0.98) 100%);
-  border: 1px solid var(--border-gold);
-  border-radius: 14px;
-  padding: 20px;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s ease, border-color 0.3s ease;
-}
-
-.price-card-slide:hover {
-  border-color: var(--accent-gold);
-  transform: translateY(-3px);
-}
-
-.price-card-slide h3 {
-  color: #121212;
-  font-size: 1.15rem;
-  font-weight: 700;
-  margin: 0 0 4px 0;
-}
-
-.price-card-slide .card-subtitle {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  margin-bottom: 15px;
-  display: block;
-}
-
-.price-card-slide ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  flex: 1;
-}
-
-.price-card-slide li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 9px 0;
-  border-bottom: 1px dashed rgba(0, 0, 0, 0.1);
-  font-size: 0.88rem;
-  color: #374151;
-}
-
-.price-card-slide li span {
-  color: var(--text-muted);
-}
-
-.price-card-slide li strong {
-  color: #121212;
-}
-
-.price-card-slide li.highlight {
-  background: rgba(239, 184, 16, 0.15);
-  border: 1px solid var(--accent-gold);
-  padding: 8px 12px;
-  border-radius: 8px;
-  margin-top: 8px;
-  border-bottom: none;
-}
-
-.price-card-slide li.highlight span {
-  color: var(--accent-gold);
-  font-weight: bold;
-}
-
-.price-card-slide li.highlight strong {
-  color: var(--accent-gold);
-  font-size: 0.95rem;
-}
-
-.card-tag {
-  position: absolute;
-  top: -12px;
-  right: 15px;
-  background: linear-gradient(135deg, var(--accent-gold), #efb810);
-  color: #ffffff;
-  font-size: 0.75rem;
-  font-weight: 800;
-  padding: 3px 10px;
-  border-radius: 20px;
-  letter-spacing: 0.5px;
-}
-
-.mini-info {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin-top: 12px;
-  line-height: 1.3;
-}
-
-.table-footer-badge {
-  text-align: center;
-  margin-top: 15px;
-  padding: 12px;
-  background: rgba(16, 185, 129, 0.12);
-  color: #059669;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  border-radius: 8px;
-  font-size: 0.88rem;
-}
-
 /* ==========================================
    9. ANIMAÇÕES & UTILITÁRIOS
    ========================================== */
