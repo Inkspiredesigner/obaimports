@@ -775,6 +775,7 @@ function showCheckoutError(msg) {
   }
 }
 
+
 function clearCheckoutError() {
   const el = document.getElementById('checkout-error');
   if (el) { 
@@ -783,6 +784,119 @@ function clearCheckoutError() {
   }
 }
 
+// ==========================================
+// IMPRESSÃO / SALVAR PEDIDO EM PDF
+// ==========================================
+function printOrder() {
+  clearCheckoutError();
+
+  if (cart.length === 0) {
+    showCheckoutError("⚠️ Seu carrinho está vazio para gerar o comprovante!");
+    return;
+  }
+
+  const name = document.getElementById('client-name')?.value.trim() || "Cliente não identificado";
+  const city = document.getElementById('client-city')?.value.trim() || "Não informada";
+  const address = document.getElementById('client-address')?.value.trim() || "Não informado";
+  const cep = document.getElementById('client-cep')?.value.trim() || "";
+  const cpf = document.getElementById('client-cpf')?.value.trim() || "";
+  const payment = document.getElementById('payment-method')?.value.trim() || "Não informado";
+  const shipping = document.getElementById('shipping-method')?.value.trim() || "Não informado";
+
+  const totalsCategory = getCategoryQuantities(cart);
+  let totalValue = 0;
+  let totalRetailValue = 0;
+
+  let itemsHtml = '';
+  cart.forEach(item => {
+    const unitPrice = getItemUnitPrice(item, cart, totalsCategory);
+    const itemTotal = unitPrice * item.qty;
+    totalValue += itemTotal;
+    totalRetailValue += item.retailPrice * item.qty;
+
+    itemsHtml += `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${escapeHTML(item.name)}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: center;">${item.qty}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">${formatBRL(unitPrice)}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold;">${formatBRL(itemTotal)}</td>
+      </tr>
+    `;
+  });
+
+  const savings = totalRetailValue - totalValue;
+
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>Comprovante de Pedido - ${escapeHTML(name)}</title>
+      <style>
+        body { font-family: system-ui, -apple-system, sans-serif; padding: 25px; color: #1e293b; max-width: 800px; margin: 0 auto; }
+        .header { text-align: center; border-bottom: 2px solid #cbd5e1; padding-bottom: 15px; margin-bottom: 20px; }
+        .header h1 { margin: 0; font-size: 22px; color: #0f172a; }
+        .header p { margin: 5px 0 0; color: #64748b; font-size: 13px; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; }
+        th { background: #f1f5f9; text-align: left; padding: 10px; border-bottom: 2px solid #cbd5e1; color: #475569; }
+        .totals { text-align: right; font-size: 14px; border-top: 2px solid #e2e8f0; padding-top: 15px; }
+        .total-final { font-size: 18px; color: #166534; font-weight: bold; margin-top: 5px; }
+        @media print {
+          body { padding: 0; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>📦 RESUMO DO PEDIDO - OBA PERFUMES</h1>
+        <p>Emissão: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</p>
+      </div>
+
+      <div class="info-grid">
+        <div>
+          <strong>Cliente:</strong> ${escapeHTML(name)}<br>
+          ${cpf ? `<strong>CPF:</strong> ${escapeHTML(cpf)}<br>` : ''}
+          <strong>Endereço:</strong> ${escapeHTML(address)}<br>
+          <strong>Cidade/UF:</strong> ${escapeHTML(city)} ${cep ? ` - CEP: ${escapeHTML(cep)}` : ''}
+        </div>
+        <div>
+          <strong>Forma de Pagamento:</strong> ${escapeHTML(payment)}<br>
+          <strong>Forma de Envio:</strong> ${escapeHTML(shipping)}
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th style="text-align: center;">Qtd</th>
+            <th style="text-align: right;">Unitário</th>
+            <th style="text-align: right;">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHtml}
+        </tbody>
+      </table>
+
+      <div class="totals">
+        <p style="margin: 3px 0;">Valor Varejo: ${formatBRL(totalRetailValue)}</p>
+        ${savings > 0 ? `<p style="margin: 3px 0; color: #dc2626;">Desconto Atacado: -${formatBRL(savings)}</p>` : ''}
+        <div class="total-final">TOTAL DO PEDIDO: ${formatBRL(totalValue)}</div>
+      </div>
+
+      <script>
+        window.onload = function() { 
+          window.print(); 
+        };
+      </script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
 // ==========================================
 // 13. CARROSSEL & EVENTOS
 // ==========================================
