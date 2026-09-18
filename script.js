@@ -790,7 +790,6 @@ function sendWhatsApp() {
   const rawPhone = "558896880584"; 
   window.open(`https://wa.me/${rawPhone}?text=${encodeURIComponent(msg)}`, '_blank');
 }
-
 // ==========================================
 // IMPRESSÃO / SALVAR PEDIDO EM PDF
 // ==========================================
