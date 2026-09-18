@@ -6,21 +6,26 @@ function formatBRL(value) {
   return `R$ ${num.toFixed(2).replace('.', ',')}`;
 }
 
-function sanitizeInput(str) {
-  if (!str) return "";
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").trim();
-}
-
 function escapeHTML(str) {
   if (str === null || str === undefined) return "";
-  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function parsePrice(val) {
   if (typeof val === 'number') return isNaN(val) ? 0 : val;
   if (!val) return 0;
-  const cleaned = String(val).replace(/[^0-9.,]/g, '').replace(',', '.');
-  const num = parseFloat(cleaned);
+  
+  let str = String(val).trim();
+  // Trata padrão brasileiro (ex: 1.250,50 -> 1250.50)
+  if (str.includes(',')) {
+    str = str.replace(/\./g, '').replace(',', '.');
+  }
+  const num = parseFloat(str.replace(/[^0-9.]/g, ''));
   return isNaN(num) ? 0 : num;
 }
 
@@ -43,7 +48,7 @@ let productsData = [];
 async function fetchAllAirtableProducts(offset = '') {
   let url = `/api/products`;
   if (offset) {
-    url += `?offset=${offset}`;
+    url += `?offset=${encodeURIComponent(offset)}`;
   }
 
   const response = await fetch(url);
@@ -64,17 +69,17 @@ async function fetchAllAirtableProducts(offset = '') {
 }
 
 function mapAirtableRecordToProduct(record) {
-  const f = record.fields;
+  const f = record.fields || {};
 
   const rawNome = f.Nome || f.nome || f.Name || f.name || f.Produto || f.produto || Object.values(f)[0] || "Produto sem nome";
   const nomeProduto = String(rawNome).trim();
 
-  let rawCat = f.categoria || f.Categoria || f.Category || f.category || "50ml";
+  let rawCat = f.categoria || f.Categoria || f.Category || f.category;
   if (Array.isArray(rawCat)) {
-    rawCat = rawCat[0] || "50ml";
+    rawCat = rawCat.length > 0 ? rawCat[0] : "50ml";
   }
   
-  let categoriaTratada = String(rawCat).trim();
+  let categoriaTratada = String(rawCat || "50ml").trim();
   const catLower = categoriaTratada.toLowerCase().replace(/\s+/g, '');
   
   if (catLower.includes('wepink')) {
@@ -97,12 +102,12 @@ function mapAirtableRecordToProduct(record) {
 
   let imageUrl = "https://via.placeholder.com/300";
   
-  const imgObj = (f.imagem && Array.isArray(f.imagem) && f.imagem.length > 0) ? f.imagem[0]
-               : (f.Imagem && Array.isArray(f.Imagem) && f.Imagem.length > 0) ? f.Imagem[0]
+  const imgObj = (Array.isArray(f.imagem) && f.imagem.length > 0) ? f.imagem[0]
+               : (Array.isArray(f.Imagem) && f.Imagem.length > 0) ? f.Imagem[0]
                : null;
 
   if (imgObj) {
-    imageUrl = imgObj.thumbnails?.full?.url || imgObj.thumbnails?.large?.url || imgObj.url;
+    imageUrl = imgObj.thumbnails?.full?.url || imgObj.thumbnails?.large?.url || imgObj.url || imageUrl;
   } else if (typeof f.imagem === 'string' && f.imagem.trim() !== '') {
     imageUrl = f.imagem;
   } else if (typeof f.Imagem === 'string' && f.Imagem.trim() !== '') {
@@ -113,8 +118,11 @@ function mapAirtableRecordToProduct(record) {
   const status2 = f['Status 2'] || f.Status2 || f.Disponivel || f.disponivel;
   const isAvailable = status2 === 'Disponivel' || status2 === 'Disponível' || status2 === true || status2 === undefined;
 
+  // Garante ID limpo para uso seguro em atributos HTML e seletores DOM
+  const safeId = String(record.id).replace(/[^a-zA-Z0-9_-]/g, '');
+
   return {
-    id: record.id,
+    id: safeId,
     name: nomeProduto,
     category: categoriaTratada,
     retailPrice: preco,
@@ -321,7 +329,7 @@ function renderCardPriceHTML(p, unitPrice, isAvailable) {
 }
 
 function renderCardActionHTML(p, isAvailable) {
-  const idSafe = escapeHTML(p.id);
+  const idSafe = p.id;
   if (!isAvailable) {
     return `<button type="button" class="add-btn" disabled style="background: #27272a; color: #71717a; border: 1px solid #3f3f46; cursor: not-allowed; box-shadow: none; width: 100%;">Esgotado</button>`;
   }
@@ -362,7 +370,7 @@ function renderProducts() {
     let badgeSafe = escapeHTML(p.badge);
     let badgeClassSafe = escapeHTML(p.badgeClass);
     const imageSafe = escapeHTML(p.image);
-    const idSafe = escapeHTML(p.id);
+    const idSafe = p.id;
     const isAvailable = p.available !== false;
 
     if (!isAvailable) {
@@ -397,7 +405,7 @@ function updateCatalogUI() {
   const totalsCategory = getCategoryQuantities(cart);
   
   productsData.forEach(p => {
-    const idSafe = escapeHTML(p.id);
+    const idSafe = p.id;
     const priceEl = document.getElementById(`card-price-${idSafe}`);
     const actionEl = document.getElementById(`card-action-${idSafe}`);
     const isAvailable = p.available !== false;
@@ -459,7 +467,7 @@ function openProductModal(id) {
   let badgeClassSafe = escapeHTML(p.badgeClass);
   const imageSafe = escapeHTML(p.image);
   const descSafe = escapeHTML(p.description);
-  const idSafe = escapeHTML(p.id);
+  const idSafe = p.id;
   const isAvailable = p.available !== false;
 
   if (!isAvailable) {
@@ -571,7 +579,7 @@ function updateCart() {
           totalRetailValue += item.retailPrice * item.qty;
 
           const nameSafe = escapeHTML(item.name);
-          const idSafe = escapeHTML(item.id);
+          const idSafe = item.id;
           const hasDiscount = unitPrice < item.retailPrice;
           const discountTag = hasDiscount ? '(Desconto aplicado)' : '';
 
@@ -706,13 +714,14 @@ function sendWhatsApp() {
     return;
   }
 
-  const name = sanitizeInput(document.getElementById('client-name')?.value);
-  const city = sanitizeInput(document.getElementById('client-city')?.value);
-  const address = sanitizeInput(document.getElementById('client-address')?.value);
-  const cep = sanitizeInput(document.getElementById('client-cep')?.value);
-  const cpf = sanitizeInput(document.getElementById('client-cpf')?.value);
-  const payment = sanitizeInput(document.getElementById('payment-method')?.value) || "Não informado";
-  const shipping = sanitizeInput(document.getElementById('shipping-method')?.value) || "Não informado";
+  // Não usa sanitizeInput para evitar transformar texto simples em entidades como &#039;
+  const name = (document.getElementById('client-name')?.value || '').trim();
+  const city = (document.getElementById('client-city')?.value || '').trim();
+  const address = (document.getElementById('client-address')?.value || '').trim();
+  const cep = (document.getElementById('client-cep')?.value || '').trim();
+  const cpf = (document.getElementById('client-cpf')?.value || '').trim();
+  const payment = (document.getElementById('payment-method')?.value || '').trim() || "Não informado";
+  const shipping = (document.getElementById('shipping-method')?.value || '').trim() || "Não informado";
 
   if (!name || !city || !address) { 
     showCheckoutError("⚠️ Por favor, preencha Nome, Cidade e Endereço."); 
@@ -729,7 +738,7 @@ function sendWhatsApp() {
   let totalValue = 0;
   let totalRetailValue = 0;
 
-  let msg = `📦 *NOVO PEDIDO - ALIBA PERFUMES*\n------------------------------------\n`;
+  let msg = `📦 *NOVO PEDIDO - OBA PERFUMES*\n------------------------------------\n`;
   msg += `👤 *Cliente:* ${name}\n📍 *Cidade/UF:* ${city}\n`;
   if (cpf) msg += `🪪 *CPF:* ${cpf}\n`;
   msg += `🏠 *Endereço:* ${address}\n`;
