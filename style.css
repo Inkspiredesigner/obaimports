@@ -1605,3 +1605,11 @@ select:focus-visible {
 .checkout-actions .notice-btn:active {
   transform: translateY(0);
 }
+/* Cor do número do seletor de quantidade */
+.qty-value,
+.qty-input,
+.quantity-count,
+.product-card input[type="number"] {
+  color: #000000 !important;
+  font-weight: 700;
+}
