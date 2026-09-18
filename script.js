@@ -798,7 +798,7 @@ function sendWhatsApp() {
     const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
     const pdfLink = `${baseUrl}/comprovante.html?pedido=${encodedData}`;
 
-    msg += `\n📄 *Link do Comprovante (PDF):*\n${pdfLink}\n`;
+   msg += `\n📄 *Link do comprovante da compra de ${name}:*\n${pdfLink}\n`;
   } catch (e) {
     console.error("Erro ao gerar o link do PDF:", e);
   }
