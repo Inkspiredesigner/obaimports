@@ -819,7 +819,7 @@ async function sendWhatsApp() {
     console.error("Erro ao gerar o link do PDF:", e);
   }
 
-  const rawPhone = "558896880584";
+  const rawPhone = "558594047750";
   window.location.href = `https://wa.me/${rawPhone}?text=${encodeURIComponent(msg)}`;
 }
 // ==========================================
