@@ -458,7 +458,9 @@ function toggleCategoryDrawer() {
   const overlay = document.getElementById('category-overlay');
   if (drawer && overlay) {
     drawer.classList.toggle('open');
+    drawer.classList.toggle('active');
     overlay.classList.toggle('open');
+    overlay.classList.toggle('active');
   }
 }
 
@@ -496,7 +498,7 @@ function openProductModal(id) {
     : `<button type="button" class="add-btn" disabled style="width: 100%; margin-top: 15px; padding: 12px; font-size: 1rem; background: #27272a; color: #71717a; cursor: not-allowed;">Produto Esgotado</button>`;
 
   body.innerHTML = `
-    <img src="${imageSafe}" loading="lazy" class="modal-img" alt="${nameSafe}">
+    <img src="${imageSafe}" loading="lazy" class="modal-img" alt="${nameSafe}" style="max-width: 100%; height: 180px; object-fit: contain;">
     <span class="badge ${badgeClassSafe}" style="margin-top: 10px; display: inline-block;">${badgeSafe}</span>
     <h2 class="modal-title" style="margin-top: 10px; color: #0f172a;">${nameSafe}</h2>
     <div class="price-wholesale" style="font-size: 1.15rem; margin: 8px 0; color: #d97706; font-weight: 800;">
@@ -592,11 +594,11 @@ function updateCart() {
           const itemTotal = unitPrice * item.qty;
           
           totalValue += itemTotal;
-          totalRetailValue += item.retailPrice * item.qty;
+          totalRetailValue += (item.retailPrice || unitPrice) * item.qty;
 
           const nameSafe = escapeHTML(item.name);
           const idSafe = item.id;
-          const hasDiscount = unitPrice < item.retailPrice;
+          const hasDiscount = unitPrice < (item.retailPrice || unitPrice);
           const discountTag = hasDiscount ? '(Desconto aplicado)' : '';
 
           return `
@@ -651,12 +653,18 @@ function updateCart() {
 
 function toggleCart() {
   const modal = document.getElementById('cart-modal');
-  if (modal) modal.classList.toggle('open');
+  if (modal) {
+    modal.classList.toggle('open');
+    modal.classList.toggle('active');
+  }
 }
 
 function closeCart() {
   const modal = document.getElementById('cart-modal');
-  if (modal) modal.classList.remove('open');
+  if (modal) {
+    modal.classList.remove('open');
+    modal.classList.remove('active');
+  }
 }
 
 // ==========================================
@@ -719,9 +727,14 @@ function validateCPF(cpf) {
   return true;
 }
 
+// ==========================================
+// 12. ENVIO PARA WHATSAPP & IMPRESSÃO EM PDF
+// ==========================================
 async function sendWhatsApp() {
+  clearCheckoutError();
+
   if (typeof cart === 'undefined' || cart.length === 0) {
-    alert("⚠️ Seu carrinho está vazio!");
+    showCheckoutError("⚠️ Seu carrinho está vazio!");
     return;
   }
 
@@ -734,7 +747,7 @@ async function sendWhatsApp() {
   const shipping = (document.getElementById('shipping-method')?.value || '').trim() || "Não informado";
 
   if (!name || !city || !address) {
-    alert("⚠️ Por favor, preencha os campos obrigatórios: Nome, Cidade e Endereço.");
+    showCheckoutError("⚠️ Por favor, preencha os campos obrigatórios: Nome, Cidade e Endereço.");
     return;
   }
 
@@ -822,6 +835,123 @@ async function sendWhatsApp() {
   const rawPhone = "558594047750";
   window.location.href = `https://wa.me/${rawPhone}?text=${encodeURIComponent(msg)}`;
 }
+
+function printOrder() {
+  clearCheckoutError();
+
+  if (!cart || cart.length === 0) {
+    showCheckoutError("⚠️ Seu carrinho está vazio para gerar o comprovante!");
+    return;
+  }
+
+  const name = document.getElementById('client-name')?.value.trim() || "Cliente não identificado";
+  const city = document.getElementById('client-city')?.value.trim() || "Não informada";
+  const address = document.getElementById('client-address')?.value.trim() || "Não informado";
+  const cep = document.getElementById('client-cep')?.value.trim() || "";
+  const cpf = document.getElementById('client-cpf')?.value.trim() || "";
+  const payment = document.getElementById('payment-method')?.value.trim() || "Não informado";
+  const shipping = document.getElementById('shipping-method')?.value.trim() || "Não informado";
+
+  const totalsCategory = getCategoryQuantities(cart);
+  let totalValue = 0;
+  let totalRetailValue = 0;
+
+  let itemsHtml = '';
+  cart.forEach(item => {
+    const unitPrice = getItemUnitPrice(item, cart, totalsCategory);
+    const itemTotal = unitPrice * item.qty;
+    totalValue += itemTotal;
+    totalRetailValue += (item.retailPrice || unitPrice) * item.qty;
+
+    itemsHtml += `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0;">${escapeHTML(item.name)}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: center;">${item.qty}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right;">${formatBRL(unitPrice)}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold;">${formatBRL(itemTotal)}</td>
+      </tr>
+    `;
+  });
+
+  const savings = totalRetailValue - totalValue;
+
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    alert("Por favor, permita pop-ups para visualizar o comprovante.");
+    return;
+  }
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>Comprovante de Pedido - ${escapeHTML(name)}</title>
+      <style>
+        body { font-family: system-ui, -apple-system, sans-serif; padding: 25px; color: #1e293b; max-width: 800px; margin: 0 auto; }
+        .header { text-align: center; border-bottom: 2px solid #cbd5e1; padding-bottom: 15px; margin-bottom: 20px; }
+        .header h1 { margin: 0; font-size: 22px; color: #0f172a; }
+        .header p { margin: 5px 0 0; color: #64748b; font-size: 13px; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px; }
+        th { background: #f1f5f9; text-align: left; padding: 10px; border-bottom: 2px solid #cbd5e1; color: #475569; }
+        .totals { text-align: right; font-size: 14px; border-top: 2px solid #e2e8f0; padding-top: 15px; }
+        .total-final { font-size: 18px; color: #166534; font-weight: bold; margin-top: 5px; }
+        @media print {
+          body { padding: 0; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>📦 RESUMO DO PEDIDO - OBA PERFUMES</h1>
+        <p>Emissão: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}</p>
+      </div>
+
+      <div class="info-grid">
+        <div>
+          <strong>Cliente:</strong> ${escapeHTML(name)}<br>
+          ${cpf ? `<strong>CPF:</strong> ${escapeHTML(cpf)}<br>` : ''}
+          <strong>Endereço:</strong> ${escapeHTML(address)}<br>
+          <strong>Cidade/UF:</strong> ${escapeHTML(city)} ${cep ? ` - CEP: ${escapeHTML(cep)}` : ''}
+        </div>
+        <div>
+          <strong>Forma de Pagamento:</strong> ${escapeHTML(payment)}<br>
+          <strong>Forma de Envio:</strong> ${escapeHTML(shipping)}
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th style="text-align: center;">Qtd</th>
+            <th style="text-align: right;">Unitário</th>
+            <th style="text-align: right;">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHtml}
+        </tbody>
+      </table>
+
+      <div class="totals">
+        <p><strong>Subtotal (Varejo):</strong> ${formatBRL(totalRetailValue)}</p>
+        ${savings > 0 ? `<p style="color: #d97706;"><strong>Desconto Atacado:</strong> -${formatBRL(savings)}</p>` : ''}
+        <div class="total-final">Total Final: ${formatBRL(totalValue)}</div>
+      </div>
+
+      <script>
+        window.onload = function() {
+          window.print();
+        };
+      <\/script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
+
 // ==========================================
 // 13. CARROSSEL & EVENTOS
 // ==========================================
