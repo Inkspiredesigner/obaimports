@@ -704,6 +704,13 @@ select:focus-visible {
   border-left: 1px solid var(--accent-gold);
 }
 
+/* Altera a cor do texto dos itens no carrinho para preto */
+.cart-item, 
+.cart-item-title, 
+.cart-product-name {
+    color: #000000 !important;
+}
+
 .cart-modal.open {
   right: 0;
 }
