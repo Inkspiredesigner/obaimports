@@ -121,7 +121,6 @@ function mapAirtableRecordToProduct(record) {
   if (Array.isArray(rawSubCat)) rawSubCat = rawSubCat[0] || "";
   const subcategoriaTratada = String(rawSubCat).trim();
 
-
   let imageUrl = "https://via.placeholder.com/300";
   
   const imgObj = (Array.isArray(f.imagem) && f.imagem.length > 0) ? f.imagem[0]
@@ -146,6 +145,7 @@ function mapAirtableRecordToProduct(record) {
     id: safeId,
     name: nomeProduto,
     category: categoriaTratada,
+    subcategory: subcategoriaTratada,
     retailPrice: preco,
     image: imageUrl,
     badge: f.badge || f.Badge || "Destaque",
@@ -182,6 +182,7 @@ async function loadProductsFromAirtable() {
 // ==========================================
 let cart = [];
 let currentCategory = "todos";
+let currentSubCategory = "todas";
 let searchQuery = "";
 
 function saveCart() {
@@ -375,8 +376,10 @@ function renderProducts() {
 
   const filtered = productsData.filter(p => {
     const matchesCat = currentCategory.toLowerCase() === "todos" || p.category.toLowerCase() === currentCategory.toLowerCase();
+    const matchesSubCat = currentSubCategory.toLowerCase() === "todas" || 
+      (p.subcategory && p.subcategory.toLowerCase() === currentSubCategory.toLowerCase());
     const matchesSearch = p.name.toLowerCase().includes(searchQuery);
-    return matchesCat && matchesSearch;
+    return matchesCat && matchesSubCat && matchesSearch;
   });
 
   if (filtered.length === 0) {
@@ -439,6 +442,7 @@ function updateCatalogUI() {
 
 function filterCategory(cat, btn = null) {
   currentCategory = cat;
+  currentSubCategory = "todas"; // Reseta a subcategoria ao trocar de categoria principal
 
   document.querySelectorAll('.cat-btn').forEach(b => {
     const attr = b.getAttribute('onclick') || '';
@@ -449,6 +453,18 @@ function filterCategory(cat, btn = null) {
   document.querySelectorAll('.drawer-cat-btn').forEach(b => {
     const attr = b.getAttribute('onclick') || '';
     if (b === btn || attr.includes(`'${cat}'`)) b.classList.add('active');
+    else b.classList.remove('active');
+  });
+
+  renderProducts();
+}
+
+function filterSubCategory(subCat, btn = null) {
+  currentSubCategory = subCat;
+
+  document.querySelectorAll('.subcat-btn').forEach(b => {
+    const attr = b.getAttribute('onclick') || '';
+    if (b === btn || attr.includes(`'${subCat}'`)) b.classList.add('active');
     else b.classList.remove('active');
   });
 
@@ -813,7 +829,6 @@ async function sendWhatsApp() {
     const baseUrl = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
     const fullPdfLink = `${baseUrl}/comprovante.html?pedido=${encodedData}`;
 
-    // Encurtador compatível com requisições do navegador (CORS Habilitado)
     let finalLink = fullPdfLink;
     try {
       const response = await fetch('https://spoo.me', {
