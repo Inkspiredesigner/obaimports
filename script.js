@@ -301,7 +301,7 @@ function getItemUnitPrice(item, cartState = cart, totals = null) {
   }
 
   if (item.category === 'miniaturas') {
-    if (catQty >= 6 || totalGeral >= 10) return 12.00;
+    if (catQty >= 6 || totalGeral >= 10) return 47.99;
     return item.retailPrice;
   }
 
