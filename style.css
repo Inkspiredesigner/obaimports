@@ -704,11 +704,14 @@ select:focus-visible {
   border-left: 1px solid var(--accent-gold);
 }
 
-/* Altera a cor do texto dos itens no carrinho para preto */
-.cart-item, 
+/* Força o nome do produto no carrinho a ficar escuro/preto */
 .cart-item-title, 
-.cart-product-name {
-    color: #000000 !important;
+.cart-product-name, 
+.item-name,
+#cart-items p, 
+#cart-items span {
+    color: #222222 !important; /* Cor preta/grafite escuro */
+    font-weight: 600;          /* Opcional: deixa o texto em negrito */
 }
 
 .cart-modal.open {
