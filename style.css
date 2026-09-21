@@ -1496,3 +1496,46 @@ select:focus-visible {
   color: #000000 !important;
   font-weight: 800 !important;
 }
+/* ==========================================
+   BARRA DE SUBCATEGORIAS
+   ========================================== */
+.subcategories-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 10px 0 20px 0;
+  scrollbar-width: none;
+}
+
+.subcategories-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.subcat-btn {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.subcat-btn:hover,
+.subcat-btn.active {
+  background: var(--accent-gold);
+  color: #000;
+  border-color: var(--accent-gold);
+  font-weight: bold;
+}
+
+.drawer-subcategories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border-color);
+}
