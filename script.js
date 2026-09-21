@@ -117,7 +117,7 @@ function mapAirtableRecordToProduct(record) {
     categoriaTratada = 'miniaturas';
   }
   
-  let rawSubCat = f.subcategoria || f.Subcategoria || f.Subcategory || f.subcategory || "";
+  let rawSubCat = f.subcategoria || f.Subcategoria || f.Subcategory || f.subcategory || f['Sub Categoria'] || f['Sub-categoria'] || "";
   if (Array.isArray(rawSubCat)) rawSubCat = rawSubCat[0] || "";
   const subcategoriaTratada = String(rawSubCat).trim();
 
@@ -363,16 +363,59 @@ function renderCardActionHTML(p, isAvailable) {
     return `
       <div style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;">
         <button type="button" class="add-btn" style="padding: 6px 12px; width: auto;" onclick="event.stopPropagation(); updateQty('${idSafe}', -1);">-</button>
-        <span style="color: #000000; font-weight: bold; font-size: 0.95rem;">${currentQty}</span>
+        <span style="color: #ffffff; font-weight: bold; font-size: 0.95rem;">${currentQty}</span>
         <button type="button" class="add-btn" style="padding: 6px 12px; width: auto;" onclick="event.stopPropagation(); updateQty('${idSafe}', 1);">+</button>
       </div>`;
   }
   return `<button type="button" class="add-btn" style="width: 100%;" onclick="event.stopPropagation(); addToCart('${idSafe}', this);">+ Adicionar</button>`;
 }
 
+function renderSubcategoryButtons() {
+  const bar = document.getElementById('subcategories-bar');
+  const drawerSub = document.getElementById('drawer-subcategories');
+
+  if (currentCategory.toLowerCase() === 'todos') {
+    if (bar) bar.classList.add('hidden');
+    if (drawerSub) drawerSub.classList.add('hidden');
+    return;
+  }
+
+  const activeProducts = productsData.filter(p => p.category.toLowerCase() === currentCategory.toLowerCase());
+  const subcategories = [...new Set(activeProducts.map(p => p.subcategory).filter(s => s && s.trim() !== ''))];
+
+  if (subcategories.length === 0) {
+    if (bar) bar.classList.add('hidden');
+    if (drawerSub) drawerSub.classList.add('hidden');
+    return;
+  }
+
+  let buttonsHTML = `
+    <button type="button" class="subcat-btn ${currentSubCategory.toLowerCase() === 'todas' ? 'active' : ''}" onclick="filterSubCategory('todas', this)">Todas</button>
+  `;
+
+  subcategories.forEach(sub => {
+    const isActive = currentSubCategory.toLowerCase() === sub.toLowerCase();
+    buttonsHTML += `
+      <button type="button" class="subcat-btn ${isActive ? 'active' : ''}" onclick="filterSubCategory('${escapeHTML(sub)}', this)">${escapeHTML(sub)}</button>
+    `;
+  });
+
+  if (bar) {
+    bar.innerHTML = buttonsHTML;
+    bar.classList.remove('hidden');
+  }
+
+  if (drawerSub) {
+    drawerSub.innerHTML = buttonsHTML;
+    drawerSub.classList.remove('hidden');
+  }
+}
+
 function renderProducts() {
   const grid = document.getElementById('products-grid');
   if (!grid) return;
+
+  renderSubcategoryButtons();
 
   const filtered = productsData.filter(p => {
     const matchesCat = currentCategory.toLowerCase() === "todos" || p.category.toLowerCase() === currentCategory.toLowerCase();
@@ -442,15 +485,9 @@ function updateCatalogUI() {
 
 function filterCategory(cat, btn = null) {
   currentCategory = cat;
-  currentSubCategory = "todas"; // Reseta a subcategoria ao trocar de categoria principal
+  currentSubCategory = "todas";
 
-  document.querySelectorAll('.cat-btn').forEach(b => {
-    const attr = b.getAttribute('onclick') || '';
-    if (b === btn || attr.includes(`'${cat}'`)) b.classList.add('active');
-    else b.classList.remove('active');
-  });
-
-  document.querySelectorAll('.drawer-cat-btn').forEach(b => {
+  document.querySelectorAll('.cat-btn, .drawer-cat-btn').forEach(b => {
     const attr = b.getAttribute('onclick') || '';
     if (b === btn || attr.includes(`'${cat}'`)) b.classList.add('active');
     else b.classList.remove('active');
