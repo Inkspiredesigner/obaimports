@@ -116,6 +116,11 @@ function mapAirtableRecordToProduct(record) {
   } else if (catLower.includes('mini')) {
     categoriaTratada = 'miniaturas';
   }
+  
+  let rawSubCat = f.subcategoria || f.Subcategoria || f.Subcategory || f.subcategory || "";
+  if (Array.isArray(rawSubCat)) rawSubCat = rawSubCat[0] || "";
+  const subcategoriaTratada = String(rawSubCat).trim();
+
 
   let imageUrl = "https://via.placeholder.com/300";
   
