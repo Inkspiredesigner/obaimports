@@ -226,21 +226,31 @@ function showToast(message) {
   }, 2800);
 }
 
-// ==========================================
-// 5. PRECIFICAÇÃO DINÂMICA
+/// ==========================================
+// 5. PRECIFICAÇÃO DINÂMICA (ATUALIZADA)
 // ==========================================
 function getCategoryQuantities(cartState = cart) {
   const totals = {
     '50ml': 0, '100ml': 0, '150ml': 0,
     'bodysplash': 0, 'bodybrand': 0, 'cremes': 0,
-    'miniaturas': 0, 'Wepink': 0, totalGeral: 0
+    'miniaturas': 0, 'Wepink': 0, totalGeral: 0,
+    subcategories: {} // Contagem individual de cada subcategoria
   };
 
   for (let item of cartState) {
     const cat = item.category;
+    const sub = item.subcategory || 'outros';
     const qty = item.qty || 0;
+
     if (totals[cat] !== undefined) totals[cat] += qty;
     else totals[cat] = qty;
+
+    // Contagem isolada por subcategoria
+    if (!totals.subcategories[sub]) {
+      totals.subcategories[sub] = 0;
+    }
+    totals.subcategories[sub] += qty;
+
     totals.totalGeral += qty;
   }
   return totals;
@@ -250,6 +260,7 @@ function getItemUnitPrice(item, cartState = cart, totals = null) {
   const q = totals || getCategoryQuantities(cartState);
   const totalGeral = q.totalGeral || 0;
   const catQty = q[item.category] || 0;
+  const subQty = (q.subcategories && q.subcategories[item.subcategory]) || 0;
 
   if (item.category === 'bodybrand') {
     if (catQty >= 10 || totalGeral >= 10) return 48.00;
@@ -300,29 +311,24 @@ function getItemUnitPrice(item, cartState = cart, totals = null) {
     return item.retailPrice;
   }
 
+  // --- REGRA DE MINIATURAS POR SUBCATEGORIA ---
   if (item.category === 'miniaturas') {
-    if (catQty >= 6 || totalGeral >= 10) return 47.99;
+    // Só aplica o desconto de atacado se a subcategoria específica atingir 10 unidades
+    if (subQty >= 10) {
+      const subName = (item.subcategory || '').trim().toLowerCase();
+
+      if (subName === 'arabic') return 48.00;
+      if (subName === 'brand') return 38.00;
+      if (subName === 'royal âmbar' || subName === 'royal ambar') return 49.99;
+      if (subName === 'sapatinho') return 50.00;
+
+      return 48.00; // Valor de apoio (fallback) para miniaturas caso surja outra subcategoria
+    }
     return item.retailPrice;
   }
 
   return item.retailPrice;
 }
-
-function isWholesaleOrder(cartState = cart) {
-  const q = getCategoryQuantities(cartState);
-  return (
-    q.totalGeral >= 10 ||
-    q['50ml'] >= 6 ||
-    q['100ml'] >= 10 ||
-    q['150ml'] >= 10 ||
-    q['bodysplash'] >= 10 ||
-    q['bodybrand'] >= 10 ||
-    q['cremes'] >= 10 ||
-    q['Wepink'] >= 6 ||
-    q['miniaturas'] >= 6
-  );
-}
-
 // ==========================================
 // 6. RENDERIZAÇÃO E ATUALIZAÇÃO DA VITRINE
 // ==========================================
