@@ -234,7 +234,7 @@ function getCategoryQuantities(cartState = cart) {
     '50ml': 0, '100ml': 0, '150ml': 0,
     'bodysplash': 0, 'bodybrand': 0, 'cremes': 0,
     'miniaturas': 0, 'Wepink': 0, totalGeral: 0,
-    subcategories: {} // Contagem individual de cada subcategoria
+    subcategories: {}
   };
 
   for (let item of cartState) {
@@ -245,7 +245,6 @@ function getCategoryQuantities(cartState = cart) {
     if (totals[cat] !== undefined) totals[cat] += qty;
     else totals[cat] = qty;
 
-    // Contagem isolada por subcategoria
     if (!totals.subcategories[sub]) {
       totals.subcategories[sub] = 0;
     }
@@ -313,8 +312,8 @@ function getItemUnitPrice(item, cartState = cart, totals = null) {
 
   // --- REGRA DE MINIATURAS POR SUBCATEGORIA ---
   if (item.category === 'miniaturas') {
-    // Só aplica o desconto de atacado se a subcategoria específica atingir 10 unidades
-    if (subQty >= 10) {
+    // Aplica o desconto se o total geral for >= 10, OU a categoria/subcategoria for >= 10
+    if (totalGeral >= 10 || catQty >= 10 || subQty >= 10) {
       const subName = (item.subcategory || '').trim().toLowerCase();
 
       if (subName === 'arabic') return 48.00;
@@ -322,7 +321,7 @@ function getItemUnitPrice(item, cartState = cart, totals = null) {
       if (subName === 'royal âmbar' || subName === 'royal ambar') return 49.99;
       if (subName === 'sapatinho') return 50.00;
 
-      return 48.00; // Valor de apoio (fallback) para miniaturas caso surja outra subcategoria
+      return 48.00; // Valor padrão para miniaturas não listadas
     }
     return item.retailPrice;
   }
