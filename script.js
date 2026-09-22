@@ -651,7 +651,7 @@ function updateCart() {
   const container = document.getElementById('cart-items');
   if (container) {
     container.innerHTML = cart.length === 0
-      ? '<p style="text-align:center; color: #000000; margin: 30px 0;">Seu carrinho está vazio.</p>'
+      ? '<p style="text-align:center; color: #71717a; margin: 30px 0;">Seu carrinho está vazio.</p>'
       : cart.map(item => {
           const unitPrice = getItemUnitPrice(item, cart, totalsCategory);
           const itemTotal = unitPrice * item.qty;
@@ -665,10 +665,10 @@ function updateCart() {
           const discountTag = hasDiscount ? '(Desconto aplicado)' : '';
 
           return `
-            <div class="cart-item" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #27272a;">
+            <div class="cart-item" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e4e4e7;">
               <div class="cart-item-info">
-                <h4 style="font-size:0.88rem; color:#ffffff; margin:0 0 4px 0;">${nameSafe}</h4>
-                <small style="color:var(--accent-gold, #d4af37);">${formatBRL(unitPrice)} un ${discountTag}</small>
+                <h4 style="font-size:0.88rem; color:#000000; font-weight:700; margin:0 0 4px 0;">${nameSafe}</h4>
+                <small style="color:var(--accent-gold, #d4af37); font-weight:600;">${formatBRL(unitPrice)} un ${discountTag}</small>
               </div>
               <div class="qty-controls" style="display: flex; align-items: center; gap: 4px;">
                 <button type="button" onclick="event.preventDefault(); updateQty('${idSafe}', -1);">-</button>
@@ -729,7 +729,6 @@ function closeCart() {
     modal.classList.remove('active');
   }
 }
-
 // ==========================================
 // 10. MODAL TABELA DE PREÇOS
 // ==========================================
