@@ -677,7 +677,7 @@ function updateCart() {
                   min="1" 
                   value="${item.qty}" 
                   onchange="setQty('${idSafe}', this.value)"
-                  style="width: 45px; text-align: center; background: #000000; border: 1px solid #3f3f46; color: #000000; font-weight: 800; border-radius: 6px; padding: 4px; font-size: 0.85rem; outline: none;"
+                  style="width: 45px; text-align: center; background: #ffffff; border: 1px solid #3f3f46; color: #000000; font-weight: 800; border-radius: 6px; padding: 4px; font-size: 0.85rem; outline: none;"
                 />
                 <button type="button" onclick="event.preventDefault(); updateQty('${idSafe}', 1);">+</button>
               </div>
