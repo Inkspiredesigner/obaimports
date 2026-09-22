@@ -651,7 +651,7 @@ function updateCart() {
   const container = document.getElementById('cart-items');
   if (container) {
     container.innerHTML = cart.length === 0
-      ? '<p style="text-align:center; color: #a1a1aa; margin: 30px 0;">Seu carrinho está vazio.</p>'
+      ? '<p style="text-align:center; color: #000000; margin: 30px 0;">Seu carrinho está vazio.</p>'
       : cart.map(item => {
           const unitPrice = getItemUnitPrice(item, cart, totalsCategory);
           const itemTotal = unitPrice * item.qty;
@@ -677,7 +677,7 @@ function updateCart() {
                   min="1" 
                   value="${item.qty}" 
                   onchange="setQty('${idSafe}', this.value)"
-                  style="width: 45px; text-align: center; background: #ffffff; border: 1px solid #3f3f46; color: #000000; font-weight: 800; border-radius: 6px; padding: 4px; font-size: 0.85rem; outline: none;"
+                  style="width: 45px; text-align: center; background: #000000; border: 1px solid #3f3f46; color: #000000; font-weight: 800; border-radius: 6px; padding: 4px; font-size: 0.85rem; outline: none;"
                 />
                 <button type="button" onclick="event.preventDefault(); updateQty('${idSafe}', 1);">+</button>
               </div>
