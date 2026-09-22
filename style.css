@@ -1549,3 +1549,19 @@ select:focus-visible {
   padding-top: 15px;
   border-top: 1px solid var(--border-color);
 }
+/* Força o nome e textos dos itens do carrinho a ficarem escuros */
+.cart-item, 
+.cart-item-name, 
+.cart-item-title,
+#cart-modal h3,
+#cart-modal h4,
+#cart-modal span,
+#cart-modal div {
+  color: #1e293b; /* Cor escura (quase preto) */
+}
+
+/* Mantém apenas as mensagens de desconto em amarelo/dourado */
+.cart-item .discount-tag,
+.cart-item .price-discount {
+  color: #d97706 !important;
+}
