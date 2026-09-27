@@ -153,38 +153,27 @@ async function loadProductsFromAirtable() {
   // 2. Exibe o indicador de carregamento caso precise buscar no Airtable
   const grid = document.getElementById('products-grid');
   if (grid) {
-    grid.innerHTML = `
-**
+   grid.innerHTML = `
+      <div style="grid-column: 1/-1; text-align:center; padding: 60px 20px; color: var(--accent-gold, #d4af37);">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size: 2.2rem;"></i>
+        <p style="margin-top: 15px; font-size: 1.05rem; font-weight: 500;">Carregando catálogo completo de perfumes...</p>
+      </div>`;
+  }
 
-Carregando catálogo completo de perfumes...
-
-`;
-}
-
-try {
-const records = await fetchAllAirtableProducts();
-
-// Processa com a sua função original (mantendo fotos e preços corretos)
-productsData = records
-  .map(mapAirtableRecordToProduct)
-  .filter(p => p.available);
-
-// Salva o resultado pronto no cache do navegador
-sessionStorage.setItem(CACHE_KEY, JSON.stringify(productsData));
-sessionStorage.setItem(CACHE_TIME_KEY, now.toString());
-  
-renderProducts();
-renderSubcategoryButtons(currentCategory);
-} catch (error) {
-console.error("Erro ao carregar produtos do Airtable:", error);
-if (grid) {
-grid.innerHTML = `
-
-Ops! Não foi possível carregar os produtos.
-
-`;
-}
-}
+  try {
+    const records = await fetchAllAirtableProducts();
+    productsData = records
+      .map(mapAirtableRecordToProduct)
+      .filter(p => p.available);
+      
+    renderProducts();
+    renderSubcategoryButtons(currentCategory);
+  } catch (error) {
+    console.error("Erro ao carregar produtos do Airtable:", error);
+    if (grid) {
+      grid.innerHTML = `<p style="grid-column: 1/-1; text-align:center; padding: 40px; color: #ef4444;">Ops! Não foi possível carregar os produtos.</p>`;
+    }
+  }
 }
 // ==========================================
 // 3. UTILITÁRIOS E PERSISTÊNCIA
