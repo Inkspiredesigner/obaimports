@@ -1,13 +1,10 @@
 export default async function handler(req, res) {
   const { offset } = req.query;
   const baseId = 'app8CqLGTAPaDZc5n'; 
-  // Usamos o ID direto da Tabela extraído da URL do seu Airtable:
   const tableName = 'tbliURvEyK3SCGhWe'; 
-  const token = process.env.AIRTABLE_TOKEN;
-
-  if (!token) {
-    return res.status(500).json({ erro: 'TOKEN_NAO_ENCONTRADO' });
-  }
+  
+  // COLE SEU TOKEN NOVO AQUI DENTRO DAS ASPAS
+  const token = 'patSUA_CHAVE_AQUI'; 
 
   let url = `https://api.airtable.com/v0/\({baseId}/\){tableName}`;
   if (offset) url += `?offset=${offset}`;
