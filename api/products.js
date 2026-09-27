@@ -4,6 +4,7 @@ export default async function handler(req, res) {
   const tableName = 'Produtos';
   const token = process.env.AIRTABLE_TOKEN;
 
+  // Corrigida a sintaxe das variáveis na URL (${baseId})
   let url = `https://api.airtable.com/v0/\({baseId}/\){encodeURIComponent(tableName)}`;
   if (offset) url += `?offset=${offset}`;
 
