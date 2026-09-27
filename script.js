@@ -58,14 +58,31 @@ function showCheckoutError(msg) {
 }
 
 // ==========================================
-// 2. CONFIGURAÇÃO & CARREGAMENTO DE PRODUTOS
+// 2. CONFIGURAÇÃO & INTEGRAÇÃO COM AIRTABLE
 // ==========================================
-let productsData = [];
+function parsePrice(val) {
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  if (!val) return 0;
+  const cleaned = String(val).replace(/[^0-9.,]/g, '').replace(',', '.');
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : num;
+}
+
+function extractPrice(f) {
+  const keys = ['PrecoVarejo', 'Preço Varejo', 'Preco', 'Preço', 'Valor', 'valor', 'Price', 'price', 'Status'];
+  for (let key of keys) {
+    if (f[key] !== undefined && f[key] !== null) {
+      let p = parsePrice(f[key]);
+      if (p > 0) return p;
+    }
+  }
+  return 0;
+}
 
 async function fetchAllAirtableProducts(offset = '') {
-  let url = `/products.json`;
+  let url = `/api/products`;
   if (offset) {
-    url += `?offset=${encodeURIComponent(offset)}`;
+    url += `?offset=${offset}`;
   }
 
   const response = await fetch(url);
@@ -75,7 +92,7 @@ async function fetchAllAirtableProducts(offset = '') {
   }
 
   const data = await response.json();
-  let records = Array.isArray(data) ? data : (data.records || []);
+  let records = data.records || [];
 
   if (data.offset) {
     const nextRecords = await fetchAllAirtableProducts(data.offset);
@@ -86,94 +103,66 @@ async function fetchAllAirtableProducts(offset = '') {
 }
 
 function mapAirtableRecordToProduct(record) {
-  const f = record.fields || record || {};
+  const f = record.fields;
 
-  // 1. Nome do Produto
-  const rawNome = f.name || f.Name || f.Nome || f.nome || f.Produto || f.produto || Object.values(f)[0] || "Produto sem nome";
+  const rawNome = f.Nome || f.nome || f.Name || f.name || f.Produto || f.produto || Object.values(f)[0] || "Produto sem nome";
   const nomeProduto = String(rawNome).trim();
 
-  // 2. Preço (Processado diretamente para evitar conflitos de funções)
-  let preco = 0;
-  const rawPreco = f.Status || f.status || f.Preco || f.preco || f.Price || f.price || 0;
-  if (typeof rawPreco === 'number') {
-    preco = rawPreco;
-  } else if (rawPreco) {
-    const cleaned = String(rawPreco).replace(/[^\d,\.]/g, '').replace(',', '.');
-    preco = parseFloat(cleaned) || 0;
-  }
-
-  // 3. Tratamento de Categoria
-  let rawCat = f.categoria || f.Categoria || f.Category || f.category;
-  if (Array.isArray(rawCat)) {
-    rawCat = rawCat.length > 0 ? rawCat[0] : "50ml";
-  }
+  let rawCat = f.categoria || f.Categoria || f.Category || f.category || "50ml";
+  if (Array.isArray(rawCat)) rawCat = rawCat[0] || "50ml";
   
-  let categoriaTratada = String(rawCat || "50ml").trim();
+  let categoriaTratada = String(rawCat).trim();
   const catLower = categoriaTratada.toLowerCase().replace(/\s+/g, '');
   
-  if (catLower.includes('wepink')) {
-    categoriaTratada = 'Wepink';
-  } else if (catLower.includes('150ml') || catLower.includes('infantil')) { 
-    categoriaTratada = '150ml';
-  } else if (catLower.includes('50ml')) {
-    categoriaTratada = '50ml';
-  } else if (catLower.includes('100ml')) {
-    categoriaTratada = '100ml';
-  } else if (catLower.includes('bodybrand') || catLower.includes('brand')) {
-    categoriaTratada = 'bodybrand';
-  } else if (catLower.includes('body') || catLower.includes('splash')) {
-    categoriaTratada = 'bodysplash';
-  } else if (catLower.includes('creme') || catLower.includes('hidratante')) {
-    categoriaTratada = 'cremes';
-  } else if (catLower.includes('mini')) {
-    categoriaTratada = 'miniaturas';
+  if (catLower.includes('wepink')) categoriaTratada = 'Wepink';
+  else if (catLower.includes('150ml') || catLower.includes('infantil')) categoriaTratada = '150ml';
+  else if (catLower.includes('50ml')) categoriaTratada = '50ml';
+  else if (catLower.includes('100ml')) categoriaTratada = '100ml';
+  else if (catLower.includes('body') || catLower.includes('splash')) categoriaTratada = 'bodysplash';
+  else if (catLower.includes('creme') || catLower.includes('hidratante')) categoriaTratada = 'cremes';
+  else if (catLower.includes('mini')) categoriaTratada = 'miniaturas';
+
+  let rawPeso = parsePrice(f.Peso || f.peso || f.Weight || f.weight);
+  if (!rawPeso || rawPeso <= 0) {
+    if (categoriaTratada === '50ml') rawPeso = 0.200;
+    else if (categoriaTratada === '100ml') rawPeso = 0.350;
+    else if (categoriaTratada === '150ml') rawPeso = 0.450;
+    else if (categoriaTratada === 'bodysplash') rawPeso = 0.300;
+    else if (categoriaTratada === 'cremes') rawPeso = 0.250;
+    else rawPeso = 0.200;
   }
-  
-  // 4. Subcategoria
-  let rawSubCat = f.subcategoria || f.Subcategoria || f.Subcategory || f.subcategory || f['Sub Categoria'] || f['Sub-categoria'] || "";
+
+  let rawSubCat = f.subcategoria || f.Subcategoria || f.Subcategory || f.subcategory || "";
   if (Array.isArray(rawSubCat)) rawSubCat = rawSubCat[0] || "";
   const subcategoriaTratada = String(rawSubCat).trim();
 
-  // 5. Extração da Imagem
-  let rawImagem = "";
-  const possiveisNomes = ['imagem', 'image', 'foto', 'attachment', 'attachments', 'anexo', 'url'];
-
-  if (f && typeof f === 'object') {
-    for (const chave of Object.keys(f)) {
-      const chaveLimpa = chave.trim().toLowerCase();
-      if (possiveisNomes.some(nome => chaveLimpa.includes(nome))) {
-        if (f[chave]) {
-          rawImagem = f[chave];
-          break;
-        }
-      }
-    }
-  }
-
   let imageUrl = "https://via.placeholder.com/300";
+  const imgObj = (f.imagem && Array.isArray(f.imagem) && f.imagem.length > 0) ? f.imagem[0]
+               : (f.Imagem && Array.isArray(f.Imagem) && f.Imagem.length > 0) ? f.Imagem[0]
+               : null;
 
-  if (typeof rawImagem === 'string' && rawImagem.trim() !== '') {
-    const match = rawImagem.match(/https?:\/\/[^\s\)\"\']+/);
-    if (match) imageUrl = match[0];
-  } else if (Array.isArray(rawImagem) && rawImagem.length > 0) {
-    let imgObj = rawImagem[0];
-    imageUrl = imgObj.url || imgObj.thumbnails?.full?.url || imageUrl;
+  if (imgObj) {
+    imageUrl = imgObj.thumbnails?.full?.url || imgObj.thumbnails?.large?.url || imgObj.url;
+  } else if (typeof f.imagem === 'string' && f.imagem.trim() !== '') {
+    imageUrl = f.imagem;
+  } else if (typeof f.Imagem === 'string' && f.Imagem.trim() !== '') {
+    imageUrl = f.Imagem;
   }
 
-  // 6. Disponibilidade
+  const preco = extractPrice(f);
   const status2 = f['Status 2'] || f.Status2 || f.Disponivel || f.disponivel;
   const isAvailable = status2 === 'Disponivel' || status2 === 'Disponível' || status2 === true || status2 === undefined;
 
-  // 7. Sanitização do ID
-  const rawId = record.id !== undefined ? record.id : Math.random().toString(36).substring(2, 9);
-  const safeId = String(rawId).replace(/[^a-zA-Z0-9_-]/g, '');
-
   return {
-    id: safeId,
+    id: record.id,
     name: nomeProduto,
+    nameLower: nomeProduto.toLowerCase(),
     category: categoriaTratada,
+    categoryLower: categoriaTratada.toLowerCase(),
     subcategory: subcategoriaTratada,
+    subcategoryLower: subcategoriaTratada.toLowerCase(),
     retailPrice: preco,
+    weight: rawPeso,
     image: imageUrl,
     badge: f.badge || f.Badge || "Destaque",
     badgeClass: f.badgeClass || f.BadgeClass || "badge-top",
@@ -186,27 +175,26 @@ async function loadProductsFromAirtable() {
   const grid = document.getElementById('products-grid');
   if (grid) {
     grid.innerHTML = `
-**
+      <div style="grid-column: 1/-1; text-align:center; padding: 60px 20px; color: var(--accent-gold, #d4af37);">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size: 2.2rem;"></i>
+        <p style="margin-top: 15px; font-size: 1.05rem; font-weight: 500;">Carregando catálogo completo de perfumes...</p>
+      </div>`;
+  }
 
-Carregando catálogo completo de perfumes...
-
-`;
-}
-
-try {
-const records = await fetchAllAirtableProducts();
-productsData = records.map(mapAirtableRecordToProduct);
-renderProducts();
-} catch (error) {
-console.error("Erro ao carregar produtos:", error);
-if (grid) {
-grid.innerHTML = `
-
-Ops! Não foi possível carregar os produtos.
-
-`;
-}
-}
+  try {
+    const records = await fetchAllAirtableProducts();
+    productsData = records
+      .map(mapAirtableRecordToProduct)
+      .filter(p => p.available);
+      
+    renderProducts();
+    renderSubcategoryButtons(currentCategory);
+  } catch (error) {
+    console.error("Erro ao carregar produtos do Airtable:", error);
+    if (grid) {
+      grid.innerHTML = `<p style="grid-column: 1/-1; text-align:center; padding: 40px; color: #ef4444;">Ops! Não foi possível carregar os produtos.</p>`;
+    }
+  }
 }
 // ==========================================
 // 3. ESTADO GLOBAL & PERSISTÊNCIA
