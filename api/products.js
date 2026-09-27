@@ -1,4 +1,7 @@
-
+export default async function handler(req, res) {
+  // 1. Configura o cache da Vercel (5 minutos)
+  res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
+}
 export default async function handler(req, res) {
   const { offset } = req.query;
   const baseId = 'appBCqLGTAPaDZc5n';
