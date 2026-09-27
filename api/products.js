@@ -1,10 +1,10 @@
 export default async function handler(req, res) {
   const { offset } = req.query;
-  const baseId = process.env.AIRTABLE_BASE_ID || app8CqLGTAPaDZc5n;
+  // ID fixo e direto da base Oba Imports
+  const baseId = 'app8CqLGTAPaDZc5n'; 
   const tableName = 'Produtos';
   const token = process.env.AIRTABLE_TOKEN;
 
-  // Corrigida a sintaxe das variáveis na URL (${baseId})
   let url = `https://api.airtable.com/v0/\({baseId}/\){encodeURIComponent(tableName)}`;
   if (offset) url += `?offset=${offset}`;
 
@@ -15,14 +15,12 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // Se o Airtable retornar um erro (ex: token inválido ou limite excedido),
-    // retorna o erro correto sem salvar em cache
+    // Se o Airtable retornar erro, não guarda em cache
     if (!response.ok) {
       return res.status(response.status).json(data);
     }
 
-    // Define cache na Vercel por 15 minutos (900 segundos).
-    // As visitas durante esse tempo lerão a memória da Vercel sem gastar o limite do Airtable.
+    // Cache na Vercel por 15 minutos apenas para requisições com sucesso (200 OK)
     res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=59');
 
     return res.status(200).json(data);
