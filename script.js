@@ -1,3 +1,5 @@
+// No início do script.js
+let currentSubCategory = null; // ou ''
 function formatBRL(value) {
   const num = Number(value) || 0;
   return `R$ ${num.toFixed(2).replace('.', ',')}`;
