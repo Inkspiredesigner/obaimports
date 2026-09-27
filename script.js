@@ -57,33 +57,13 @@ function showCheckoutError(msg) {
   }
 }
 
-// ==========================================
-// 2. CONFIGURAÇÃO & INTEGRAÇÃO COM AIRTABLE
-// ==========================================
-let productsData = [];
-
-async function fetchAllAirtableProducts(offset = '') {
-  let url = `/api/products`;
-  if (offset) {
-    url += `?offset=${encodeURIComponent(offset)}`;
-  }
-
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    throw new Error(`Erro na API: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  let records = data.records || [];
-
-  if (data.offset) {
-    const nextRecords = await fetchAllAirtableProducts(data.offset);
-    records = records.concat(nextRecords);
-  }
-
-  return records;
-}
+// DEPOIS (Aponta para o teu products.json):
+fetch('/products.json')
+  .then(response => response.json())
+  .then(data => {
+    productsData = data;
+    renderCatalog();
+  });
 
 function mapAirtableRecordToProduct(record) {
   const f = record.fields || {};
