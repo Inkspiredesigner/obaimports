@@ -75,8 +75,7 @@ let url = `/products.json`;
   }
 
   const data = await response.json();
-  let records = data.records || [];
-
+let records = Array.isArray(data) ? data : (data.records || []);
   if (data.offset) {
     const nextRecords = await fetchAllAirtableProducts(data.offset);
     records = records.concat(nextRecords);
@@ -86,8 +85,7 @@ let url = `/products.json`;
 }
 
 function mapAirtableRecordToProduct(record) {
-  const f = record.fields || {};
-
+const f = record.fields || record || {};
   const rawNome = f.Nome || f.nome || f.Name || f.name || f.Produto || f.produto || Object.values(f)[0] || "Produto sem nome";
   const nomeProduto = String(rawNome).trim();
 
