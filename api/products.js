@@ -1,6 +1,6 @@
 export default async function handler(req, res) {
   const { offset } = req.query;
-  const baseId = process.env.AIRTABLE_BASE_ID;
+  const baseId = process.env.AIRTABLE_BASE_ID || app8CqLGTAPaDZc5n;
   const tableName = 'Produtos';
   const token = process.env.AIRTABLE_TOKEN;
 
