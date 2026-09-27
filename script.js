@@ -58,12 +58,22 @@ function showCheckoutError(msg) {
 }
 
 // ==========================================
-// 2. CONFIGURAÇÃO & INTEGRAÇÃO COM AIRTABLE
+// 2. CONFIGURAÇÃO & CARREGAMENTO DE PRODUTOS
 // ==========================================
 let productsData = [];
 
+// Função para extrair e converter o preço do formato "R$29,99" ou numérico
+function extractPrice(f) {
+  const raw = f.Status || f.status || f.Preco || f.preco || f.Price || f.price || 0;
+  if (typeof raw === 'number') return raw;
+  
+  // Limpa o texto "R$", remove espaços e troca a vírgula por ponto
+  const cleaned = String(raw).replace(/[^\d,\.]/g, '').replace(',', '.');
+  return parseFloat(cleaned) || 0;
+}
+
 async function fetchAllAirtableProducts(offset = '') {
-let url = `/products.json`;
+  let url = `/products.json`;
   if (offset) {
     url += `?offset=${encodeURIComponent(offset)}`;
   }
@@ -75,7 +85,9 @@ let url = `/products.json`;
   }
 
   const data = await response.json();
-let records = Array.isArray(data) ? data : (data.records || []);
+  let records = Array.isArray(data) ? data : (data.records || []);
+
+  // Se houver offset (no caso do Airtable direto), faz busca recursiva
   if (data.offset) {
     const nextRecords = await fetchAllAirtableProducts(data.offset);
     records = records.concat(nextRecords);
@@ -85,10 +97,14 @@ let records = Array.isArray(data) ? data : (data.records || []);
 }
 
 function mapAirtableRecordToProduct(record) {
-const f = record.fields || record || {};
-  const rawNome = f.Nome || f.nome || f.Name || f.name || f.Produto || f.produto || Object.values(f)[0] || "Produto sem nome";
+  // Suporta dados diretamente na raiz do objeto ou dentro de 'fields'
+  const f = record.fields || record || {};
+
+  // 1. Nome do Produto
+  const rawNome = f.name || f.Name || f.Nome || f.nome || f.Produto || f.produto || Object.values(f)[0] || "Produto sem nome";
   const nomeProduto = String(rawNome).trim();
 
+  // 2. Tratamento de Categoria
   let rawCat = f.categoria || f.Categoria || f.Category || f.category;
   if (Array.isArray(rawCat)) {
     rawCat = rawCat.length > 0 ? rawCat[0] : "50ml";
@@ -115,47 +131,48 @@ const f = record.fields || record || {};
     categoriaTratada = 'miniaturas';
   }
   
+  // 3. Subcategoria
   let rawSubCat = f.subcategoria || f.Subcategoria || f.Subcategory || f.subcategory || f['Sub Categoria'] || f['Sub-categoria'] || "";
   if (Array.isArray(rawSubCat)) rawSubCat = rawSubCat[0] || "";
   const subcategoriaTratada = String(rawSubCat).trim();
 
- // 1. Procura dinâmica em todas as chaves do objeto para evitar problemas de espaços ou maiúsculas
-let rawImagem = "";
-const possiveisNomes = ['imagem', 'image', 'foto', 'attachment', 'attachments', 'anexo', 'url'];
+  // 4. Busca dinâmica e isolamento da URL de Imagem
+  let rawImagem = "";
+  const possiveisNomes = ['imagem', 'image', 'foto', 'attachment', 'attachments', 'anexo', 'url'];
 
-if (f && typeof f === 'object') {
-  for (const chave of Object.keys(f)) {
-    const chaveLimpa = chave.trim().toLowerCase();
-    if (possiveisNomes.some(nome => chaveLimpa.includes(nome))) {
-      if (f[chave]) {
-        rawImagem = f[chave];
-        break;
+  if (f && typeof f === 'object') {
+    for (const chave of Object.keys(f)) {
+      const chaveLimpa = chave.trim().toLowerCase();
+      if (possiveisNomes.some(nome => chaveLimpa.includes(nome))) {
+        if (f[chave]) {
+          rawImagem = f[chave];
+          break;
+        }
       }
     }
   }
-}
 
-let imageUrl = "https://via.placeholder.com/300";
+  let imageUrl = "https://via.placeholder.com/300";
 
-// 2. Processa o valor encontrado
-if (typeof rawImagem === 'string' && rawImagem.trim() !== '') {
-  const match = rawImagem.match(/https?:\/\/[^\s\)\"\']+/);
-  if (match) {
-    imageUrl = match[0];
-  } else {
-    console.warn(`[Imagem Não Encontrada] "${nomeProduto}" - Texto original:`, rawImagem);
+  if (typeof rawImagem === 'string' && rawImagem.trim() !== '') {
+    // Isola o link https://... de dentro dos parênteses ou do texto retornado pelo Airtable
+    const match = rawImagem.match(/https?:\/\/[^\s\)\"\']+/);
+    if (match) {
+      imageUrl = match[0];
+    }
+  } else if (Array.isArray(rawImagem) && rawImagem.length > 0) {
+    let imgObj = rawImagem[0];
+    imageUrl = imgObj.url || imgObj.thumbnails?.full?.url || imageUrl;
   }
-} else if (Array.isArray(rawImagem) && rawImagem.length > 0) {
-  let imgObj = rawImagem[0];
-  imageUrl = imgObj.url || imgObj.thumbnails?.full?.url || imageUrl;
-} else {
-  console.warn(`[Campo Vazio] O produto "${nomeProduto}" não tem imagem no JSON.`);
-}
+
+  // 5. Preço e Disponibilidade
   const preco = extractPrice(f);
   const status2 = f['Status 2'] || f.Status2 || f.Disponivel || f.disponivel;
   const isAvailable = status2 === 'Disponivel' || status2 === 'Disponível' || status2 === true || status2 === undefined;
 
-  const safeId = String(record.id).replace(/[^a-zA-Z0-9_-]/g, '');
+  // 6. Sanitização do ID do produto
+  const rawId = record.id !== undefined ? record.id : Math.random().toString(36).substring(2, 9);
+  const safeId = String(rawId).replace(/[^a-zA-Z0-9_-]/g, '');
 
   return {
     id: safeId,
@@ -175,23 +192,6 @@ async function loadProductsFromAirtable() {
   const grid = document.getElementById('products-grid');
   if (grid) {
     grid.innerHTML = `
-      <div style="grid-column: 1/-1; text-align:center; padding: 60px 20px; color: var(--accent-gold, #d4af37);">
-        <i class="fa-solid fa-spinner fa-spin" style="font-size: 2.2rem;"></i>
-        <p style="margin-top: 15px; font-size: 1.05rem; font-weight: 500;">Carregando catálogo completo de perfumes...</p>
-      </div>`;
-  }
-
-  try {
-    const records = await fetchAllAirtableProducts();
-    productsData = records.map(mapAirtableRecordToProduct);
-    renderProducts();
-  } catch (error) {
-    console.error("Erro ao carregar produtos do Airtable:", error);
-    if (grid) {
-      grid.innerHTML = `<p style="grid-column: 1/-1; text-align:center; padding: 40px; color: #ef4444;">Ops! Não foi possível carregar os produtos.</p>`;
-    }
-  }
-}
 // ==========================================
 // 3. ESTADO GLOBAL & PERSISTÊNCIA
 // ==========================================
