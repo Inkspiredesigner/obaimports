@@ -129,31 +129,47 @@ function mapAirtableRecordToProduct(record) {
 }
 
 async function loadProductsFromAirtable() {
-  const grid = document.getElementById('products-grid');
-  if (grid) {
-    grid.innerHTML = `
-      <div style="grid-column: 1/-1; text-align:center; padding: 60px 20px; color: var(--accent-gold, #d4af37);">
-        <i class="fa-solid fa-spinner fa-spin" style="font-size: 2.2rem;"></i>
-        <p style="margin-top: 15px; font-size: 1.05rem; font-weight: 500;">Carregando catálogo completo de perfumes...</p>
-      </div>`;
+  const CACHE_KEY = 'airtable_products_cache';
+  const CACHE_TIME_KEY = 'airtable_products_time';
+  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos em milissegundos
+
+  const cachedData = sessionStorage.getItem(CACHE_KEY);
+  const cachedTime = sessionStorage.getItem(CACHE_TIME_KEY);
+  const now = Date.now();
+
+  // 1. Se existirem dados guardados com menos de 5 minutos, carrega-os sem chamar o servidor
+  if (cachedData && cachedTime && (now - Number(cachedTime) < CACHE_DURATION)) {
+    productsData = JSON.parse(cachedData);
+    renderProducts();
+    return;
   }
 
+  // 2. Se não houver cache ou já tiver expirado, faz a requisição normal
   try {
-    const records = await fetchAllAirtableProducts();
-    productsData = records
-      .map(mapAirtableRecordToProduct)
-      .filter(p => p.available);
-      
-    renderProducts();
-    renderSubcategoryButtons(currentCategory);
-  } catch (error) {
-    console.error("Erro ao carregar produtos do Airtable:", error);
-    if (grid) {
-      grid.innerHTML = `<p style="grid-column: 1/-1; text-align:center; padding: 40px; color: #ef4444;">Ops! Não foi possível carregar os produtos.</p>`;
+    const response = await fetch('/api/products'); // Altera para o nome da tua rota (ex: /api/produtos)
+    const data = await response.json();
+
+    if (data.records) {
+      productsData = data.records.map(record => ({
+        id: record.id,
+        name: record.fields.Nome || '',
+        category: record.fields.Categoria || 'todos',
+        subcategory: record.fields.Subcategoria || '',
+        retailPrice: record.fields.Preco || 0,
+        image: record.fields.Foto?.[0]?.url || '',
+        available: record.fields.Ativo !== false
+      }));
+
+      // Guarda os novos dados em memória no navegador
+      sessionStorage.getItem(CACHE_KEY, JSON.stringify(productsData));
+      sessionStorage.setItem(CACHE_TIME_KEY, now.toString());
     }
+
+    renderProducts();
+  } catch (error) {
+    console.error("Erro ao carregar produtos:", error);
   }
 }
-
 // ==========================================
 // 3. UTILITÁRIOS E PERSISTÊNCIA
 // ==========================================
