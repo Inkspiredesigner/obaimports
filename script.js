@@ -63,7 +63,7 @@ function showCheckoutError(msg) {
 let productsData = [];
 
 async function fetchAllAirtableProducts(offset = '') {
-  let url = `/api/products`;
+let url = `/products.json`;
   if (offset) {
     url += `?offset=${encodeURIComponent(offset)}`;
   }
