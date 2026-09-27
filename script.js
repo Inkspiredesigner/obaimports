@@ -119,23 +119,22 @@ const f = record.fields || record || {};
   if (Array.isArray(rawSubCat)) rawSubCat = rawSubCat[0] || "";
   const subcategoriaTratada = String(rawSubCat).trim();
 
-  // 1. Defina uma imagem padrão para caso o link falhe
-let imageUrl = "https://via.placeholder.com/300";
+ let imageUrl = "https://via.placeholder.com/300";
 
-// 2. Tente pegar o valor direto do campo, independente do nome da coluna (padrão de fallback)
-// Tenta: f.imagem, f.Imagem, f.ImageUrl, f.product_image, f.productImage, f.Image_URL, f.image, f.Image
-let rawImageUrl = f.imagem || f.Imagem || f.ImageUrl || f.product_image || f.productImage || f.Image_URL || f.image || f.Image;
+// Procura a coluna de imagem
+let rawImagem = f.imagem || f.Imagem || f.image || f.Image;
 
-// 3. Se houver um valor e for uma string (um link direto)
-if (rawImageUrl && typeof rawImageUrl === 'string' && rawImageUrl.trim() !== '') {
-    imageUrl = rawImageUrl.trim();
-} 
-// 4. Se ainda for o formato de array do Airtable (segurança adicional)
-else if (Array.isArray(rawImageUrl) && rawImageUrl.length > 0) {
-    let imgObj = rawImageUrl[0];
-    imageUrl = imgObj.thumbnails?.full?.url || imgObj.thumbnails?.large?.url || imgObj.url || imageUrl;
+if (typeof rawImagem === 'string') {
+  // Extrai apenas o link (http/https) que estiver dentro do texto ou entre parênteses
+  const match = rawImagem.match(/https?:\/\/[^\s\)]+/);
+  if (match) {
+    imageUrl = match[0];
+  }
+} else if (Array.isArray(rawImagem) && rawImagem.length > 0) {
+  // Suporte ao formato antigo do Airtable (se houver)
+  let imgObj = rawImagem[0];
+  imageUrl = imgObj.url || imgObj.thumbnails?.full?.url || imageUrl;
 }
-
   const preco = extractPrice(f);
   const status2 = f['Status 2'] || f.Status2 || f.Disponivel || f.disponivel;
   const isAvailable = status2 === 'Disponivel' || status2 === 'Disponível' || status2 === true || status2 === undefined;
