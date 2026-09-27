@@ -62,16 +62,6 @@ function showCheckoutError(msg) {
 // ==========================================
 let productsData = [];
 
-// Função para extrair e converter o preço do formato "R$29,99" ou numérico
-function extractPrice(f) {
-  const raw = f.Status || f.status || f.Preco || f.preco || f.Price || f.price || 0;
-  if (typeof raw === 'number') return raw;
-  
-  // Limpa o texto "R$", remove espaços e troca a vírgula por ponto
-  const cleaned = String(raw).replace(/[^\d,\.]/g, '').replace(',', '.');
-  return parseFloat(cleaned) || 0;
-}
-
 async function fetchAllAirtableProducts(offset = '') {
   let url = `/products.json`;
   if (offset) {
@@ -87,7 +77,6 @@ async function fetchAllAirtableProducts(offset = '') {
   const data = await response.json();
   let records = Array.isArray(data) ? data : (data.records || []);
 
-  // Se houver offset (no caso do Airtable direto), faz busca recursiva
   if (data.offset) {
     const nextRecords = await fetchAllAirtableProducts(data.offset);
     records = records.concat(nextRecords);
@@ -97,14 +86,23 @@ async function fetchAllAirtableProducts(offset = '') {
 }
 
 function mapAirtableRecordToProduct(record) {
-  // Suporta dados diretamente na raiz do objeto ou dentro de 'fields'
   const f = record.fields || record || {};
 
   // 1. Nome do Produto
   const rawNome = f.name || f.Name || f.Nome || f.nome || f.Produto || f.produto || Object.values(f)[0] || "Produto sem nome";
   const nomeProduto = String(rawNome).trim();
 
-  // 2. Tratamento de Categoria
+  // 2. Preço (Processado diretamente para evitar conflitos de funções)
+  let preco = 0;
+  const rawPreco = f.Status || f.status || f.Preco || f.preco || f.Price || f.price || 0;
+  if (typeof rawPreco === 'number') {
+    preco = rawPreco;
+  } else if (rawPreco) {
+    const cleaned = String(rawPreco).replace(/[^\d,\.]/g, '').replace(',', '.');
+    preco = parseFloat(cleaned) || 0;
+  }
+
+  // 3. Tratamento de Categoria
   let rawCat = f.categoria || f.Categoria || f.Category || f.category;
   if (Array.isArray(rawCat)) {
     rawCat = rawCat.length > 0 ? rawCat[0] : "50ml";
@@ -131,12 +129,12 @@ function mapAirtableRecordToProduct(record) {
     categoriaTratada = 'miniaturas';
   }
   
-  // 3. Subcategoria
+  // 4. Subcategoria
   let rawSubCat = f.subcategoria || f.Subcategoria || f.Subcategory || f.subcategory || f['Sub Categoria'] || f['Sub-categoria'] || "";
   if (Array.isArray(rawSubCat)) rawSubCat = rawSubCat[0] || "";
   const subcategoriaTratada = String(rawSubCat).trim();
 
-  // 4. Busca dinâmica e isolamento da URL de Imagem
+  // 5. Extração da Imagem
   let rawImagem = "";
   const possiveisNomes = ['imagem', 'image', 'foto', 'attachment', 'attachments', 'anexo', 'url'];
 
@@ -155,22 +153,18 @@ function mapAirtableRecordToProduct(record) {
   let imageUrl = "https://via.placeholder.com/300";
 
   if (typeof rawImagem === 'string' && rawImagem.trim() !== '') {
-    // Isola o link https://... de dentro dos parênteses ou do texto retornado pelo Airtable
     const match = rawImagem.match(/https?:\/\/[^\s\)\"\']+/);
-    if (match) {
-      imageUrl = match[0];
-    }
+    if (match) imageUrl = match[0];
   } else if (Array.isArray(rawImagem) && rawImagem.length > 0) {
     let imgObj = rawImagem[0];
     imageUrl = imgObj.url || imgObj.thumbnails?.full?.url || imageUrl;
   }
 
-  // 5. Preço e Disponibilidade
-  const preco = extractPrice(f);
+  // 6. Disponibilidade
   const status2 = f['Status 2'] || f.Status2 || f.Disponivel || f.disponivel;
   const isAvailable = status2 === 'Disponivel' || status2 === 'Disponível' || status2 === true || status2 === undefined;
 
-  // 6. Sanitização do ID do produto
+  // 7. Sanitização do ID
   const rawId = record.id !== undefined ? record.id : Math.random().toString(36).substring(2, 9);
   const safeId = String(rawId).replace(/[^a-zA-Z0-9_-]/g, '');
 
@@ -192,6 +186,28 @@ async function loadProductsFromAirtable() {
   const grid = document.getElementById('products-grid');
   if (grid) {
     grid.innerHTML = `
+**
+
+Carregando catálogo completo de perfumes...
+
+`;
+}
+
+try {
+const records = await fetchAllAirtableProducts();
+productsData = records.map(mapAirtableRecordToProduct);
+renderProducts();
+} catch (error) {
+console.error("Erro ao carregar produtos:", error);
+if (grid) {
+grid.innerHTML = `
+
+Ops! Não foi possível carregar os produtos.
+
+`;
+}
+}
+}
 // ==========================================
 // 3. ESTADO GLOBAL & PERSISTÊNCIA
 // ==========================================
