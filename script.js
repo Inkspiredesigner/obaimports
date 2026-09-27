@@ -88,7 +88,7 @@ async function fetchAllAirtableProducts(offset = '') {
   const response = await fetch(url);
 
   if (!response.ok) {
-    throw new Error(`Erro na API: ${response.statusText}`);
+    throw new Error(`Erro na API: \({response.status}\){response.statusText}`);
   }
 
   const data = await response.json();
@@ -173,28 +173,62 @@ function mapAirtableRecordToProduct(record) {
 
 async function loadProductsFromAirtable() {
   const grid = document.getElementById('products-grid');
-  if (grid) {
-    grid.innerHTML = `
-      <div style="grid-column: 1/-1; text-align:center; padding: 60px 20px; color: var(--accent-gold, #d4af37);">
-        <i class="fa-solid fa-spinner fa-spin" style="font-size: 2.2rem;"></i>
-        <p style="margin-top: 15px; font-size: 1.05rem; font-weight: 500;">Carregando catálogo completo de perfumes...</p>
-      </div>`;
-  }
+  const CACHE_KEY = 'oba_imports_produtos_cache';
+  const CACHE_TIME_KEY = 'oba_imports_produtos_tempo';
+  const TEMPO_CACHE = 10 * 60 * 1000; // Cache de 10 minutos
 
-  try {
-    const records = await fetchAllAirtableProducts();
-    productsData = records
-      .map(mapAirtableRecordToProduct)
-      .filter(p => p.available);
-      
-    renderProducts();
-    renderSubcategoryButtons(currentCategory);
-  } catch (error) {
-    console.error("Erro ao carregar produtos do Airtable:", error);
-    if (grid) {
-      grid.innerHTML = `<p style="grid-column: 1/-1; text-align:center; padding: 40px; color: #ef4444;">Ops! Não foi possível carregar os produtos.</p>`;
+  // 1. Tenta carregar do Cache do Navegador para economizar a API
+  const cacheDados = sessionStorage.getItem(CACHE_KEY);
+  const cacheTempo = sessionStorage.getItem(CACHE_TIME_KEY);
+  const agora = Date.now();
+
+  if (cacheDados && cacheTempo && (agora - Number(cacheTempo) < TEMPO_CACHE)) {
+    try {
+      productsData = JSON.parse(cacheDados);
+      renderProducts();
+      if (typeof renderSubcategoryButtons === 'function') {
+        renderSubcategoryButtons(typeof currentCategory !== 'undefined' ? currentCategory : 'todos');
+      }
+      return; // Sai da função sem fazer requisições à API
+    } catch (e) {
+      sessionStorage.removeItem(CACHE_KEY); // Se o cache estiver corrompido, limpa e busca de novo
     }
   }
+
+  // 2. Se não houver cache, mostra o indicador de carregamento
+  if (grid) {
+    grid.innerHTML = `
+**
+
+Carregando catálogo completo de perfumes...
+
+`;
+}
+
+try {
+const records = await fetchAllAirtableProducts();
+productsData = records
+.map(mapAirtableRecordToProduct)
+.filter(p => p.available);
+
+// 3. Salva no cache do navegador
+sessionStorage.setItem(CACHE_KEY, JSON.stringify(productsData));
+sessionStorage.setItem(CACHE_TIME_KEY, agora.toString());
+  
+renderProducts();
+if (typeof renderSubcategoryButtons === 'function') {
+  renderSubcategoryButtons(typeof currentCategory !== 'undefined' ? currentCategory : 'todos');
+}
+} catch (error) {
+console.error("Erro ao carregar produtos do Airtable:", error);
+if (grid) {
+grid.innerHTML = `
+
+Ops! Não foi possível carregar os produtos no momento.
+
+`;
+}
+}
 }
 // ==========================================
 // 3. ESTADO GLOBAL & PERSISTÊNCIA
