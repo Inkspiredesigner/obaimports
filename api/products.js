@@ -1,11 +1,28 @@
-// Usamos require em vez de import para nao dar erro de modulo no Node
-const productsData = require('./products.json');
-
 export default function handler(req, res) {
-  try {
-    res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
-    return res.status(200).json(productsData);
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
+  // Configuração para carregar instantaneamente
+  res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
+
+  // Retorna os produtos direto do código (Substitua a lista abaixo pelos seus produtos reais)
+  return res.status(200).json({
+    "records": [
+      {
+        "id": "rec01",
+        "fields": {
+          "Nome": "Perfume Exemplo 1",
+          "Categoria": "50ml",
+          "Status 2": "Disponivel",
+          "imagem": "https://via.placeholder.com/300"
+        }
+      },
+      {
+        "id": "rec02",
+        "fields": {
+          "Nome": "Perfume Exemplo 2",
+          "Categoria": "100ml",
+          "Status 2": "Disponivel",
+          "imagem": "https://via.placeholder.com/300"
+        }
+      }
+    ]
+  });
 }
