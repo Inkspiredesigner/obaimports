@@ -127,57 +127,65 @@ function mapAirtableRecordToProduct(record) {
     available: isAvailable
   };
 }
+
 async function loadProductsFromAirtable() {
   const CACHE_KEY = 'airtable_products_cache';
   const CACHE_TIME_KEY = 'airtable_products_time';
   const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
-  let productsData = [];
-  let currentCategory = null;
-
   const cachedData = sessionStorage.getItem(CACHE_KEY);
   const cachedTime = sessionStorage.getItem(CACHE_TIME_KEY);
   const now = Date.now();
 
+  // 1. Se existirem dados válidos em cache, exibe direto sem requisições
   if (cachedData && cachedTime && (now - Number(cachedTime) < CACHE_DURATION)) {
     try {
       productsData = JSON.parse(cachedData);
-      renderProducts(productsData);
+      renderProducts();
       renderSubcategoryButtons(currentCategory);
       return;
     } catch (e) {
       sessionStorage.removeItem(CACHE_KEY);
       sessionStorage.removeItem(CACHE_TIME_KEY);
-      // tenta novamente sem cache
-      return loadProductsFromAirtable();
     }
   }
 
+  // 2. Exibe o indicador de carregamento caso precise buscar no Airtable
   const grid = document.getElementById('products-grid');
   if (grid) {
-    grid.innerHTML = `<p><strong>Carregando catálogo completo de perfumes...</strong></p>`;
-  }
+    grid.innerHTML = `
+**
 
-  try {
-    const records = await fetchAllAirtableProducts();
+Carregando catálogo completo de perfumes...
 
-    productsData = records
-      .map(mapAirtableRecordToProduct)
-      .filter(p => p.available);
-
-    sessionStorage.setItem(CACHE_KEY, JSON.stringify(productsData));
-    sessionStorage.setItem(CACHE_TIME_KEY, now.toString());
-
-    renderProducts(productsData);
-    renderSubcategoryButtons(currentCategory);
-  } catch (error) {
-    console.error("Erro ao carregar produtos do Airtable:", error);
-    if (grid) {
-      grid.innerHTML = `<p>Ops! Não foi possível carregar os produtos.</p>`;
-    }
-  }
+`;
 }
 
+try {
+const records = await fetchAllAirtableProducts();
+
+// Processa com a sua função original (mantendo fotos e preços corretos)
+productsData = records
+  .map(mapAirtableRecordToProduct)
+  .filter(p => p.available);
+
+// Salva o resultado pronto no cache do navegador
+sessionStorage.setItem(CACHE_KEY, JSON.stringify(productsData));
+sessionStorage.setItem(CACHE_TIME_KEY, now.toString());
+  
+renderProducts();
+renderSubcategoryButtons(currentCategory);
+} catch (error) {
+console.error("Erro ao carregar produtos do Airtable:", error);
+if (grid) {
+grid.innerHTML = `
+
+Ops! Não foi possível carregar os produtos.
+
+`;
+}
+}
+}
 // ==========================================
 // 3. UTILITÁRIOS E PERSISTÊNCIA
 // ==========================================
