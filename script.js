@@ -1,21 +1,19 @@
-// No início do script.js
-let currentSubCategory = null; // ou ''
 function formatBRL(value) {
   const num = Number(value) || 0;
   return `R$ ${num.toFixed(2).replace('.', ',')}`;
 }
+
 // ==========================================
 // 1. ESTADO GLOBAL E VARIÁVEIS
 // ==========================================
 let productsData = [];
 let cart = [];
 let currentCategory = "todos";
-let currentSubcategory = "todas";
+let currentSubCategory = "todas"; // Corrigido para 'C' maiúsculo
 let searchQuery = "";
 let searchTimeout = null;
 let currentSlide = 0;
 let slideInterval = null;
-
 // ==========================================
 // 2. CONFIGURAÇÃO & INTEGRAÇÃO COM AIRTABLE
 // ==========================================
