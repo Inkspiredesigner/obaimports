@@ -1,62 +1,14 @@
+// ==========================================
+// 1. ESTADO GLOBAL E VARIÁVEIS
+// ==========================================
 let productsData = [];
-// ==========================================
-// 1. UTILITÁRIOS & FORMATAÇÃO
-// ==========================================
-function formatBRL(value) {
-  const num = Number(value) || 0;
-  return `R$ ${num.toFixed(2).replace('.', ',')}`;
-}
-
-function escapeHTML(str) {
-  if (str === null || str === undefined) return "";
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function parsePrice(val) {
-  if (typeof val === 'number') return isNaN(val) ? 0 : val;
-  if (!val) return 0;
-  
-  let str = String(val).trim();
-  if (str.includes(',')) {
-    str = str.replace(/\./g, '').replace(',', '.');
-  }
-  const num = parseFloat(str.replace(/[^0-9.]/g, ''));
-  return isNaN(num) ? 0 : num;
-}
-
-function extractPrice(f) {
-  const keys = ['PrecoVarejo', 'Preço Varejo', 'Preco', 'Preço', 'Valor', 'valor', 'Price', 'price', 'Status'];
-  for (let key of keys) {
-    if (f[key] !== undefined && f[key] !== null) {
-      let p = parsePrice(f[key]);
-      if (p > 0) return p;
-    }
-  }
-  return 0;
-}
-
-function clearCheckoutError() {
-  const errEl = document.getElementById('checkout-error');
-  if (errEl) {
-    errEl.innerText = '';
-    errEl.classList.add('hidden');
-  }
-}
-
-function showCheckoutError(msg) {
-  const errEl = document.getElementById('checkout-error');
-  if (errEl) {
-    errEl.innerText = msg;
-    errEl.classList.remove('hidden');
-  } else {
-    alert(msg);
-  }
-}
+let cart = [];
+let currentCategory = "todos";
+let currentSubcategory = "todas";
+let searchQuery = "";
+let searchTimeout = null;
+let currentSlide = 0;
+let slideInterval = null;
 
 // ==========================================
 // 2. CONFIGURAÇÃO & INTEGRAÇÃO COM AIRTABLE
@@ -89,7 +41,7 @@ async function fetchAllAirtableProducts(offset = '') {
   const response = await fetch(url);
 
   if (!response.ok) {
-    throw new Error(`Erro na API: \({response.status}\){response.statusText}`);
+    throw new Error(`Erro na API: ${response.statusText}`);
   }
 
   const data = await response.json();
@@ -174,71 +126,33 @@ function mapAirtableRecordToProduct(record) {
 
 async function loadProductsFromAirtable() {
   const grid = document.getElementById('products-grid');
-  const CACHE_KEY = 'oba_imports_produtos_cache';
-  const CACHE_TIME_KEY = 'oba_imports_produtos_tempo';
-  const TEMPO_CACHE = 10 * 60 * 1000; // Cache de 10 minutos
-
-  // 1. Tenta carregar do Cache do Navegador para economizar a API
-  const cacheDados = sessionStorage.getItem(CACHE_KEY);
-  const cacheTempo = sessionStorage.getItem(CACHE_TIME_KEY);
-  const agora = Date.now();
-
-  if (cacheDados && cacheTempo && (agora - Number(cacheTempo) < TEMPO_CACHE)) {
-    try {
-      productsData = JSON.parse(cacheDados);
-      renderProducts();
-      if (typeof renderSubcategoryButtons === 'function') {
-        renderSubcategoryButtons(typeof currentCategory !== 'undefined' ? currentCategory : 'todos');
-      }
-      return; // Sai da função sem fazer requisições à API
-    } catch (e) {
-      sessionStorage.removeItem(CACHE_KEY); // Se o cache estiver corrompido, limpa e busca de novo
-    }
-  }
-
-  // 2. Se não houver cache, mostra o indicador de carregamento
   if (grid) {
     grid.innerHTML = `
-**
+      <div style="grid-column: 1/-1; text-align:center; padding: 60px 20px; color: var(--accent-gold, #d4af37);">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size: 2.2rem;"></i>
+        <p style="margin-top: 15px; font-size: 1.05rem; font-weight: 500;">Carregando catálogo completo de perfumes...</p>
+      </div>`;
+  }
 
-Carregando catálogo completo de perfumes...
-
-`;
+  try {
+    const records = await fetchAllAirtableProducts();
+    productsData = records
+      .map(mapAirtableRecordToProduct)
+      .filter(p => p.available);
+      
+    renderProducts();
+    renderSubcategoryButtons(currentCategory);
+  } catch (error) {
+    console.error("Erro ao carregar produtos do Airtable:", error);
+    if (grid) {
+      grid.innerHTML = `<p style="grid-column: 1/-1; text-align:center; padding: 40px; color: #ef4444;">Ops! Não foi possível carregar os produtos.</p>`;
+    }
+  }
 }
 
-try {
-const records = await fetchAllAirtableProducts();
-productsData = records
-.map(mapAirtableRecordToProduct)
-.filter(p => p.available);
-
-// 3. Salva no cache do navegador
-sessionStorage.setItem(CACHE_KEY, JSON.stringify(productsData));
-sessionStorage.setItem(CACHE_TIME_KEY, agora.toString());
-  
-renderProducts();
-if (typeof renderSubcategoryButtons === 'function') {
-  renderSubcategoryButtons(typeof currentCategory !== 'undefined' ? currentCategory : 'todos');
-}
-} catch (error) {
-console.error("Erro ao carregar produtos do Airtable:", error);
-if (grid) {
-grid.innerHTML = `
-
-Ops! Não foi possível carregar os produtos no momento.
-
-`;
-}
-}
-}
 // ==========================================
-// 3. ESTADO GLOBAL & PERSISTÊNCIA
+// 3. UTILITÁRIOS E PERSISTÊNCIA
 // ==========================================
-let cart = [];
-let currentCategory = "todos";
-let currentSubCategory = "todas";
-let searchQuery = "";
-
 function saveCart() {
   try {
     localStorage.setItem('aliba_perfumes_cart', JSON.stringify(cart));
@@ -253,6 +167,57 @@ function loadCart() {
     if (saved) cart = JSON.parse(saved);
   } catch (e) {
     cart = [];
+  }
+}
+
+function sanitizeInput(str) {
+  if (!str) return "";
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;").trim();
+}
+
+function escapeHTML(str) {
+  if (str === null || str === undefined) return "";
+  return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+function showToast(message) {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerHTML = `✨ <span>${escapeHTML(message)}</span>`;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(100%)';
+    toast.style.transition = 'all 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 2800);
+}
+
+function showCheckoutError(msg) {
+  const el = document.getElementById('checkout-error');
+  if (el) { 
+    el.innerText = msg; 
+    el.classList.remove('hidden'); 
+    el.style.display = 'block';
+  } else {
+    showToast(msg);
+  }
+}
+
+function clearCheckoutError() {
+  const el = document.getElementById('checkout-error');
+  if (el) { 
+    el.classList.add('hidden'); 
+    el.innerText = ''; 
+    el.style.display = 'none';
   }
 }
 
