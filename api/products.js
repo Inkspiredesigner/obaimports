@@ -1,26 +1,27 @@
 export default function handler(req, res) {
-  // Configuração para carregar instantaneamente
+  // Define o cache para carregar instantaneamente
   res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');
 
-  // Retorna os produtos direto do código (Substitua a lista abaixo pelos seus produtos reais)
   return res.status(200).json({
     "records": [
       {
         "id": "rec01",
         "fields": {
-          "Nome": "Perfume Exemplo 1",
+          "Nome": "Perfume Teste 50ml",
           "Categoria": "50ml",
+          "Preco": 150,
           "Status 2": "Disponivel",
-          "imagem": "https://via.placeholder.com/300"
+          "imagem": [{ "url": "https://via.placeholder.com/300" }]
         }
       },
       {
         "id": "rec02",
         "fields": {
-          "Nome": "Perfume Exemplo 2",
+          "Nome": "Perfume Teste 100ml",
           "Categoria": "100ml",
+          "Preco": 250,
           "Status 2": "Disponivel",
-          "imagem": "https://via.placeholder.com/300"
+          "imagem": [{ "url": "https://via.placeholder.com/300" }]
         }
       }
     ]
