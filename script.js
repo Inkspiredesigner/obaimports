@@ -119,13 +119,26 @@ const f = record.fields || record || {};
   if (Array.isArray(rawSubCat)) rawSubCat = rawSubCat[0] || "";
   const subcategoriaTratada = String(rawSubCat).trim();
 
- // 1. Procura por qualquer variação do nome da coluna de imagem no JSON
-let rawImagem = f.imagem || f.Imagem || f.image || f.Image || f['URL Imagem'] || f.Foto || "";
+ // 1. Procura dinâmica em todas as chaves do objeto para evitar problemas de espaços ou maiúsculas
+let rawImagem = "";
+const possiveisNomes = ['imagem', 'image', 'foto', 'attachment', 'attachments', 'anexo', 'url'];
+
+if (f && typeof f === 'object') {
+  for (const chave of Object.keys(f)) {
+    const chaveLimpa = chave.trim().toLowerCase();
+    if (possiveisNomes.some(nome => chaveLimpa.includes(nome))) {
+      if (f[chave]) {
+        rawImagem = f[chave];
+        break;
+      }
+    }
+  }
+}
 
 let imageUrl = "https://via.placeholder.com/300";
 
+// 2. Processa o valor encontrado
 if (typeof rawImagem === 'string' && rawImagem.trim() !== '') {
-  // Extrai a primeira URL completa (http/https) ignorando nomes de ficheiros e parênteses
   const match = rawImagem.match(/https?:\/\/[^\s\)\"\']+/);
   if (match) {
     imageUrl = match[0];
@@ -136,7 +149,7 @@ if (typeof rawImagem === 'string' && rawImagem.trim() !== '') {
   let imgObj = rawImagem[0];
   imageUrl = imgObj.url || imgObj.thumbnails?.full?.url || imageUrl;
 } else {
-  console.warn(`[Campo Vazio] O produto "${nomeProduto}" não tem campo de imagem definido.`);
+  console.warn(`[Campo Vazio] O produto "${nomeProduto}" não tem imagem no JSON.`);
 }
   const preco = extractPrice(f);
   const status2 = f['Status 2'] || f.Status2 || f.Disponivel || f.disponivel;
