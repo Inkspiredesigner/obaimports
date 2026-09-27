@@ -1,3 +1,7 @@
+function formatBRL(value) {
+  const num = Number(value) || 0;
+  return `R$ ${num.toFixed(2).replace('.', ',')}`;
+}
 // ==========================================
 // 1. ESTADO GLOBAL E VARIÁVEIS
 // ==========================================
