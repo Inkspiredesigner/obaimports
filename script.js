@@ -57,16 +57,30 @@ function showCheckoutError(msg) {
   }
 }
 
-// DEPOIS (Aponta para o teu products.json):
-fetch('/products.json')
-  .then(response => response.json())
-  .then(data => {
-    productsData = data;
-    renderCatalog();
-  });
+// ==========================================
+// 2. CONFIGURAÇÃO & CARREGAMENTO DE PRODUTOS (JSON LOCAL)
+// ==========================================
+let productsData = [];
 
-function mapAirtableRecordToProduct(record) {
-  const f = record.fields || {};
+function mapRecordToProduct(item) {
+  // 1. Se o JSON já estiver formatado com as propriedades diretas
+  if (item.name && (item.retailPrice !== undefined || item.price !== undefined)) {
+    return {
+      id: String(item.id || Math.random().toString(36).substring(2, 9)),
+      name: String(item.name || "Produto sem nome").trim(),
+      category: String(item.category || "50ml").trim(),
+      subcategory: String(item.subcategory || "").trim(),
+      retailPrice: Number(item.retailPrice || item.price || 0),
+      image: item.image || "https://via.placeholder.com/300",
+      badge: item.badge || "Destaque",
+      badgeClass: item.badgeClass || "badge-top",
+      description: item.description || "",
+      available: item.available !== undefined ? Boolean(item.available) : true
+    };
+  }
+
+  // 2. Se o JSON veio do export direto da API do Airtable (com objeto .fields)
+  const f = item.fields || item;
 
   const rawNome = f.Nome || f.nome || f.Name || f.name || f.Produto || f.produto || Object.values(f)[0] || "Produto sem nome";
   const nomeProduto = String(rawNome).trim();
@@ -115,11 +129,11 @@ function mapAirtableRecordToProduct(record) {
     imageUrl = f.Imagem;
   }
 
-  const preco = extractPrice(f);
+  const preco = typeof extractPrice === 'function' ? extractPrice(f) : Number(f.preco || f.Preco || f.retailPrice || 0);
   const status2 = f['Status 2'] || f.Status2 || f.Disponivel || f.disponivel;
   const isAvailable = status2 === 'Disponivel' || status2 === 'Disponível' || status2 === true || status2 === undefined;
 
-  const safeId = String(record.id).replace(/[^a-zA-Z0-9_-]/g, '');
+  const safeId = String(item.id || f.id || Math.random()).replace(/[^a-zA-Z0-9_-]/g, '');
 
   return {
     id: safeId,
@@ -139,24 +153,9 @@ async function loadProductsFromAirtable() {
   const grid = document.getElementById('products-grid');
   if (grid) {
     grid.innerHTML = `
-      <div style="grid-column: 1/-1; text-align:center; padding: 60px 20px; color: var(--accent-gold, #d4af37);">
-        <i class="fa-solid fa-spinner fa-spin" style="font-size: 2.2rem;"></i>
-        <p style="margin-top: 15px; font-size: 1.05rem; font-weight: 500;">Carregando catálogo completo de perfumes...</p>
-      </div>`;
-  }
-
-  try {
-    const records = await fetchAllAirtableProducts();
-    productsData = records.map(mapAirtableRecordToProduct);
-    renderProducts();
-  } catch (error) {
-    console.error("Erro ao carregar produtos do Airtable:", error);
-    if (grid) {
-      grid.innerHTML = `<p style="grid-column: 1/-1; text-align:center; padding: 40px; color: #ef4444;">Ops! Não foi possível carregar os produtos.</p>`;
-    }
+      <p style="grid-column: 1/-1; text-align:center; padding: 40px; color: var(--text-muted, #777);">Carregando produtos...</p>`;
   }
 }
-
 // ==========================================
 // 3. ESTADO GLOBAL & PERSISTÊNCIA
 // ==========================================
