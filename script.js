@@ -119,21 +119,24 @@ const f = record.fields || record || {};
   if (Array.isArray(rawSubCat)) rawSubCat = rawSubCat[0] || "";
   const subcategoriaTratada = String(rawSubCat).trim();
 
- let imageUrl = "https://via.placeholder.com/300";
+ // 1. Procura por qualquer variação do nome da coluna de imagem no JSON
+let rawImagem = f.imagem || f.Imagem || f.image || f.Image || f['URL Imagem'] || f.Foto || "";
 
-// Procura a coluna de imagem
-let rawImagem = f.imagem || f.Imagem || f.image || f.Image;
+let imageUrl = "https://via.placeholder.com/300";
 
-if (typeof rawImagem === 'string') {
-  // Extrai apenas o link (http/https) que estiver dentro do texto ou entre parênteses
-  const match = rawImagem.match(/https?:\/\/[^\s\)]+/);
+if (typeof rawImagem === 'string' && rawImagem.trim() !== '') {
+  // Extrai a primeira URL completa (http/https) ignorando nomes de ficheiros e parênteses
+  const match = rawImagem.match(/https?:\/\/[^\s\)\"\']+/);
   if (match) {
     imageUrl = match[0];
+  } else {
+    console.warn(`[Imagem Não Encontrada] "${nomeProduto}" - Texto original:`, rawImagem);
   }
 } else if (Array.isArray(rawImagem) && rawImagem.length > 0) {
-  // Suporte ao formato antigo do Airtable (se houver)
   let imgObj = rawImagem[0];
   imageUrl = imgObj.url || imgObj.thumbnails?.full?.url || imageUrl;
+} else {
+  console.warn(`[Campo Vazio] O produto "${nomeProduto}" não tem campo de imagem definido.`);
 }
   const preco = extractPrice(f);
   const status2 = f['Status 2'] || f.Status2 || f.Disponivel || f.disponivel;
